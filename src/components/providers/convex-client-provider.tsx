@@ -1,16 +1,18 @@
 "use client";
 
 import { ConvexProvider, ConvexReactClient } from "convex/react";
-import { ConvexAuthNextjsProvider } from "@convex-dev/auth/nextjs";
 import { ReactNode } from "react";
-import { auth } from "../../../convex/auth.config"; // Password-only auth
 
-const convex = new ConvexReactClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+// -----------------------------------------------------------------------------
+// Create a server-safe Convex client
+// -----------------------------------------------------------------------------
+const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
+if (!convexUrl) throw new Error("NEXT_PUBLIC_CONVEX_URL is not set");
+const convex = new ConvexReactClient(convexUrl);
 
+// -----------------------------------------------------------------------------
+// ConvexClientProvider: wraps your app
+// -----------------------------------------------------------------------------
 export function ConvexClientProvider({ children }: { children: ReactNode }) {
-	return (
-		<ConvexAuthNextjsProvider client={convex} auth={auth}>
-			{children}
-		</ConvexAuthNextjsProvider>
-	);
+	return <ConvexProvider client={convex}>{children}</ConvexProvider>;
 }
