@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { query } from "../_generated/server";
 import { ConvexError } from "convex/values";
 import { getCurrentUserContext } from "../helpers/auth";
+import { Id } from "../_generated/dataModel";
 
 // ============================================================================
 // GET ORGANIZATION BY ID
@@ -54,12 +55,10 @@ export const list = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    let orgsQuery = ctx.db.query("organizations");
-
+    let orgsQuery = ctx.db.query("organizations").withIndex("by_created");
     if (args.verifiedOnly) {
-      orgsQuery = orgsQuery.withIndex("by_verified", (q) => q.eq("verified", true));
+      orgsQuery = orgsQuery.filter((q) => q.eq(q.field("verified"), true));
     }
-
     const orgs = await orgsQuery.order("desc").take(args.limit ?? 50);
 
     return orgs.map((org) => ({
@@ -104,7 +103,7 @@ export const getUserOrganizations = query({
       return [];
     }
 
-    const userId = identity.subject;
+    const userId = identity.subject as Id<"users">;
 
     const memberships = await ctx.db
       .query("orgMemberships")

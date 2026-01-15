@@ -145,7 +145,7 @@ export const update = mutation({
       const workerMembership = await ctx.db
         .query("orgMemberships")
         .withIndex("by_user_org", (q) =>
-          q.eq("userId", args.assignedTo).eq("organizationId", organizationId)
+          q.eq("userId", args.assignedTo!).eq("organizationId", organizationId)
         )
         .first();
 

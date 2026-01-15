@@ -7,9 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Users, Plus, Star, TrendingUp, AlertCircle } from "lucide-react";
+import { InviteWorkerModal } from "@/components/modals/invite-worker-modal";
+import { useState } from "react";
 
 export default function ManagerWorkersPage() {
   const workers = useQuery(api.members.queries.listWorkersWithStats);
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
 
   if (workers === undefined) {
     return (
@@ -35,9 +38,9 @@ export default function ManagerWorkersPage() {
           <h1 className="text-3xl font-bold">Workers</h1>
           <p className="text-muted-foreground">Manage your team and performance</p>
         </div>
-        <Button disabled>
+        <Button onClick={() => setIsInviteModalOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
-          Invite Worker (Coming Soon)
+          Invite Worker
         </Button>
       </div>
 
@@ -183,6 +186,12 @@ export default function ManagerWorkersPage() {
           ))}
         </div>
       )}
+      
+      {/* Invite Worker Modal */}
+      <InviteWorkerModal
+        isOpen={isInviteModalOpen}
+        onClose={() => setIsInviteModalOpen(false)}
+      />
     </div>
   );
 }

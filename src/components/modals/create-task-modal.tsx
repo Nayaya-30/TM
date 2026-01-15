@@ -20,7 +20,7 @@ interface CreateTaskModalProps {
 export function CreateTaskModal({ isOpen, onClose, orderId, onSuccess }: CreateTaskModalProps) {
 	const createTask = useMutation(api.tasks.mutations.create);
 	const workers = useQuery(api.members.queries.listWorkersWithStats);
-	const materials = useQuery(api.materials.queries.list);
+	const materials = useQuery(api.materials.queries.list, {});
 
 	const [isCreating, setIsCreating] = useState(false);
 	const [formData, setFormData] = useState({

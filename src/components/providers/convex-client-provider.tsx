@@ -1,16 +1,32 @@
 "use client";
 
 import { ConvexProvider, ConvexReactClient } from "convex/react";
-import { ConvexAuthNextjsProvider } from "@convex-dev/auth/nextjs";
 import { ReactNode } from "react";
-import { auth } from "../../../convex/auth.config"; // Password-only auth
+import { useSession } from "next-auth/react";
 
 const convex = new ConvexReactClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
-export function ConvexClientProvider({ children }: { children: ReactNode }) {
+function ConvexProviderInner({ children }: { children: ReactNode }) {
+	const { data: session } = useSession();
+
 	return (
-		<ConvexAuthNextjsProvider client={convex} auth={auth}>
+		<ConvexProvider
+			client={convex}
+			useAuth={() => {
+				if (!session?.user?.id) {
+					return { isLoading: false };
+				}
+				return {
+					isLoading: false,
+					token: session.user.id,
+				};
+			}}
+		>
 			{children}
-		</ConvexAuthNextjsProvider>
+		</ConvexProvider>
 	);
+}
+
+export function ConvexClientProvider({ children }: { children: ReactNode }) {
+	return <ConvexProviderInner>{children}</ConvexProviderInner>;
 }

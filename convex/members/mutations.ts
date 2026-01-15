@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation } from "../_generated/server";
 import { ConvexError } from "convex/values";
 import { getCurrentUserContext, hasPermission } from "../helpers/auth";
+import { Id } from "../_generated/dataModel";
 import { generateInviteToken, isValidEmail } from "../helpers/utils";
 
 // ============================================================================
@@ -63,7 +64,9 @@ export const invite = mutation({
         firstName: "",
         lastName: "",
         emailVerified: false,
+        phoneVerified: false,
         createdAt: now,
+        updatedAt: now,
       });
     }
 
@@ -111,7 +114,7 @@ export const acceptInvite = mutation({
       throw new ConvexError("Unauthenticated");
     }
 
-    const userId = identity.subject;
+    const userId = identity.subject as Id<"users">;
 
     const membership = await ctx.db
       .query("orgMemberships")

@@ -1,13 +1,26 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
-import { authTables } from "@convex-dev/auth/server";
 
 // ============================================================================
 // SCHEMA DEFINITION
 // ============================================================================
 
 export default defineSchema({
-  ...authTables,
+  // ==========================================================================
+  // USERS (Next-Auth)
+  // ==========================================================================
+  users: defineTable({
+    email: v.string(),
+    emailVerified: v.boolean(),
+    phone: v.optional(v.string()),
+    phoneVerified: v.boolean(),
+    firstName: v.string(),
+    lastName: v.string(),
+    avatar: v.optional(v.string()),
+    createdAt: v.float64(),
+    updatedAt: v.float64(),
+  })
+    .index("by_email", ["email"]),
 
   // ==========================================================================
   // ORGANIZATIONS
@@ -328,7 +341,9 @@ export default defineSchema({
     userId: v.id("users"),
     action: v.string(),
     resource: v.string(),
-    resourceId: v.optional(v.string()),
+    resourceId: v.optional(
+      v.string()
+    ),
     metadata: v.optional(v.record(v.string(), v.any())),
     createdAt: v.float64(),
   })

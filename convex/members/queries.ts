@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { query } from "../_generated/server";
 import { ConvexError } from "convex/values";
 import { getCurrentUserContext, hasPermission } from "../helpers/auth";
+import { isOverdue } from "../helpers/utils";
 
 // ============================================================================
 // LIST ORGANIZATION MEMBERS
@@ -146,7 +147,7 @@ export const listWorkersWithStats = query({
 
         const activeTasks = allTasks.filter((t) => t.status !== "completed");
         const completedTasks = allTasks.filter((t) => t.status === "completed");
-        const overdueTasks = allTasks.filter((t) => t.status === "overdue");
+        const overdueTasks = allTasks.filter((t) => isOverdue(t.deadline) && !t.completedAt);
 
         // Calculate average rating
         const tasksWithRating = completedTasks.filter((t) => t.rating !== undefined);

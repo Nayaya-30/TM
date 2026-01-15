@@ -12,6 +12,7 @@ import Link from "next/link";
 import { format } from "date-fns";
 import { useState } from "react";
 import { CreateOrderModal } from "@/components/modals/create-order-modal";
+import Link from "next/link";
 
 type FilterStage = "all" | "cutting" | "sewing" | "finishing" | "delivery";
 
@@ -149,12 +150,13 @@ export default function ManagerOrdersPage() {
       ) : (
         <div className="grid gap-4">
           {filteredOrders.map((order) => (
-            <Card key={order._id} className="hover:bg-accent transition-colors">
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-3">
-                      <h3 className="font-semibold text-lg">{order.orderNumber}</h3>
+            <Link key={order._id} href={`/orders/${order._id}`}>
+              <Card className="hover:bg-accent transition-colors cursor-pointer">
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-3">
+                        <h3 className="font-semibold text-lg">{order.orderNumber}</h3>
                       <Badge
                         variant={
                           order.isOverdue
@@ -226,10 +228,11 @@ export default function ManagerOrdersPage() {
                         />
                       </div>
                     </div>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </Link>
           ))}
         </div>
       )}

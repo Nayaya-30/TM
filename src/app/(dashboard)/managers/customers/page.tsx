@@ -13,7 +13,7 @@ import { useState } from "react";
 import { format } from "date-fns";
 
 export default function ManagerCustomersPage() {
-  const customers = useQuery(api.customers.queries.list);
+  const customers = useQuery(api.customers.queries.list, {});
   const [search, setSearch] = useState("");
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
 

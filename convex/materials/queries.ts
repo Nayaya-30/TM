@@ -3,6 +3,7 @@ import { query } from "../_generated/server";
 import { ConvexError } from "convex/values";
 import { getCurrentUserContext, requirePermission } from "../helpers/auth";
 import { normalizePaginationLimit } from "../helpers/utils";
+import { Id } from "../_generated/dataModel";
 
 // ============================================================================
 // LIST MATERIALS
@@ -194,7 +195,9 @@ export const getConsumptionByTask = query({
     }
 
     // Workers can only view their own tasks' material consumption
-    if (role === "worker" && task.assignedTo !== ctx.auth.getUserIdentity().then(i => i?.subject)) {
+    const identity = await ctx.auth.getUserIdentity();
+    const currentUserId = identity?.subject as Id<"users"> | undefined;
+    if (role === "worker" && (!currentUserId || task.assignedTo !== currentUserId)) {
       throw new ConvexError("Cannot view other workers' material consumption");
     }
 

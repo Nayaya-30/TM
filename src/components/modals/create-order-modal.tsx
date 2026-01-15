@@ -16,8 +16,8 @@ interface CreateOrderModalProps {
 
 export function CreateOrderModal({ isOpen, onClose, onSuccess }: CreateOrderModalProps) {
   const createOrder = useMutation(api.orders.mutations.create);
-  const customers = useQuery(api.customers.queries.list);
-  const styles = useQuery(api.styles.queries.listInternal);
+  const customers = useQuery(api.customers.queries.list, {});
+  const styles = useQuery(api.styles.queries.listInternal, {});
 
   const [isCreating, setIsCreating] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState("");
@@ -193,5 +193,4 @@ export function CreateOrderModal({ isOpen, onClose, onSuccess }: CreateOrderModa
       </form>
     </Modal>
   );
-}
 }

@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation } from "../_generated/server";
 import { ConvexError } from "convex/values";
 import { getCurrentUserContext, requirePermission } from "../helpers/auth";
+import { Id } from "../_generated/dataModel";
 import { generateInviteToken, isValidEmail, isValidPhone } from "../helpers/utils";
 
 // ============================================================================
@@ -49,7 +50,7 @@ export const create = mutation({
     const inviteToken = args.sendInvite ? generateInviteToken() : undefined;
 
     // Check if user with this email already has a platform account
-    let platformUserId: string | undefined = undefined;
+    let platformUserId: Id<"users"> | undefined = undefined;
     if (args.email) {
       const existingUser = await ctx.db
         .query("users")
@@ -210,7 +211,7 @@ export const claimAccount = mutation({
       throw new ConvexError("Unauthenticated");
     }
 
-    const userId = identity.subject;
+    const userId = identity.subject as Id<"users">;
 
     const customer = await ctx.db
       .query("customers")

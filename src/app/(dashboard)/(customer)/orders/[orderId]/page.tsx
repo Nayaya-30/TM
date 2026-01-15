@@ -106,6 +106,18 @@ export default function OrderDetailPage({ params }: { params: { orderId: string 
           </div>
         )}
       </div>
+      
+      {/* Create Task Modal */}
+      {canManageOrder && (
+        <CreateTaskModal
+          isOpen={isTaskModalOpen}
+          onClose={() => setIsTaskModalOpen(false)}
+          orderId={params.orderId as Id<"orders">}
+          onSuccess={() => {
+            // no-op: Convex real-time updates will refresh order.tasks automatically
+          }}
+        />
+      )}
 
       {/* Progress Timeline */}
       <Card>

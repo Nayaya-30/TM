@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation } from "../_generated/server";
 import { ConvexError } from "convex/values";
 import { getCurrentUserContext, requireFeatureAccess } from "../helpers/auth";
+import { Id } from "../_generated/dataModel";
 import { generateUniqueSlug, isValidHexColor } from "../helpers/utils";
 
 // ============================================================================
@@ -26,7 +27,7 @@ export const create = mutation({
       throw new ConvexError("Unauthenticated");
     }
 
-    const userId = identity.subject;
+    const userId = identity.subject as Id<"users">;
 
     // Validate accent color
     if (!isValidHexColor(args.accentColor)) {
