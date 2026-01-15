@@ -3,7 +3,7 @@ import { query } from "../_generated/server";
 import { ConvexError } from "convex/values";
 import { getCurrentUserContext, requireFeatureAccess } from "../helpers/auth";
 import { startOfDay, calculateAverageCompletionTime } from "../helpers/utils";
-import { Id } from "../_generated/dataModel";
+import { Id, Doc } from "../_generated/dataModel";
 
 // ============================================================================
 // GET ANALYTICS OVERVIEW
@@ -239,9 +239,9 @@ export const getMaterialConsumption = query({
       ledgerEntries.map((e) => e.materialId as Id<"materials">)
     );
     const consumption = await Promise.all(
-      Array.from(uniqueMaterialIds).map(async (materialId) => {
-        const material = await ctx.db.get(materialId);
-        const quantity = consumptionByMaterial[materialId] ?? 0;
+      Array.from(uniqueMaterialIds).map(async (materialId: Id<"materials">) => {
+        const material = await ctx.db.get(materialId as any) as any;
+        const quantity = consumptionByMaterial[materialId as any] ?? 0;
         return {
           materialId,
           materialName: material?.name ?? "Unknown",
