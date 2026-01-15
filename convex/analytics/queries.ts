@@ -226,10 +226,10 @@ export const getMaterialConsumption = query({
       .collect();
 
     // Group by material
-    const consumptionByMaterial: Record<string, number> = {};
+    const consumptionByMaterial: Record<Id<"materials">, number> = {};
 
     for (const entry of ledgerEntries) {
-      const materialId = entry.materialId;
+      const materialId = entry.materialId as Id<"materials">;
       consumptionByMaterial[materialId] =
         (consumptionByMaterial[materialId] ?? 0) + Math.abs(entry.quantity);
     }
@@ -237,7 +237,7 @@ export const getMaterialConsumption = query({
     // Get material details
     const consumption = await Promise.all(
       Object.entries(consumptionByMaterial).map(async ([materialId, quantity]) => {
-        const material = await ctx.db.get(materialId as Id<"materials">);
+        const material = await ctx.db.get(materialId);
         return {
           materialId,
           materialName: material?.name ?? "Unknown",
