@@ -235,9 +235,13 @@ export const getMaterialConsumption = query({
     }
 
     // Get material details
+    const uniqueMaterialIds = new Set<Id<"materials">>(
+      ledgerEntries.map((e) => e.materialId as Id<"materials">)
+    );
     const consumption = await Promise.all(
-      Object.entries(consumptionByMaterial).map(async ([materialId, quantity]) => {
+      Array.from(uniqueMaterialIds).map(async (materialId) => {
         const material = await ctx.db.get(materialId);
+        const quantity = consumptionByMaterial[materialId] ?? 0;
         return {
           materialId,
           materialName: material?.name ?? "Unknown",
