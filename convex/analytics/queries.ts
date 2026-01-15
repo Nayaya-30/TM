@@ -242,10 +242,11 @@ export const getMaterialConsumption = query({
       Array.from(uniqueMaterialIds).map(async (materialId: Id<"materials">) => {
         const material = await ctx.db.get(materialId as any) as any;
         const quantity = consumptionByMaterial[materialId as any] ?? 0;
+        const materialDoc = material as { name?: string; unit?: string } | null;
         return {
           materialId,
-          materialName: material?.name ?? "Unknown",
-          unit: material?.unit ?? "units",
+          materialName: materialDoc?.name ?? "Unknown",
+          unit: materialDoc?.unit ?? "units",
           quantity,
         };
       })
