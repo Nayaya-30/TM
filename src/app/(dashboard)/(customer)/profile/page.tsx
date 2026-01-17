@@ -6,13 +6,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { User, Mail, Phone, Building2, Calendar, LogOut } from "lucide-react";
-import { signOut } from "next-auth/react";
+import { User, Mail, Phone, Building2, LogOut } from "lucide-react";
+import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 
 export default function CustomerProfilePage() {
-  const profile = useQuery(api.users.queries.getProfile);
+  const { data: session } = useSession();
+  const userId = session?.user?.id as any;
+  const profile = useQuery(
+    api.users.queries.getProfile,
+    userId ? { userId } : "skip"
+  );
   const currentOrg = useQuery(api.organizations.queries.getCurrent);
   const router = useRouter();
 

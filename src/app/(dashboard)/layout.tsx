@@ -2,6 +2,7 @@
 
 import { useQuery } from "convex/react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { api } from "@/convex/_generated/api";
 import { Sidebar } from "@/components/layout/sidebar";
 import { MobileNav } from "@/components/layout/mobile-nav";
@@ -9,13 +10,59 @@ import { FloatingChat } from "@/components/ui/floating-chat";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MessageCircle, Bell } from "lucide-react";
 
+function OrgHeader({ organizationId }: { organizationId: any }) {
+  const org = useQuery(
+    api.organizations.queries.get,
+    { organizationId }
+  );
+  return (
+    <header className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur-sm">
+      <div className="flex items-center justify-between px-4 lg:px-6 h-16">
+        <div className="flex items-center gap-3">
+          {org?.logo && (
+            <img
+              src={org.logo}
+              alt={org.name}
+              className="h-8 w-8 rounded-lg object-cover"
+            />
+          )}
+          <div>
+            <h1 className="font-semibold">{org?.name ?? "Organization"}</h1>
+            {org?.verified && (
+              <span className="text-xs text-muted-foreground">✓ Verified</span>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            className="p-2 rounded-lg hover:bg-accent transition-colors relative"
+          >
+            <MessageCircle className="h-5 w-5" />
+          </button>
+          <button className="p-2 rounded-lg hover:bg-accent transition-colors relative">
+            <Bell className="h-5 w-5" />
+          </button>
+        </div>
+      </div>
+    </header>
+  );
+}
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const currentUser = useQuery(api.users.queries.getCurrentUser);
-  const currentOrg = useQuery(api.organizations.queries.getCurrent);
-  const profile = useQuery(api.users.queries.getProfile);
+  const { data: session, status } = useSession();
+  const userId = session?.user?.id as any;
+  const currentUser = useQuery(
+    api.users.queries.getCurrentUser,
+    userId ? { userId } : undefined
+  );
+  const profile = useQuery(
+    api.users.queries.getProfile,
+    userId ? { userId } : undefined
+  );
+  const orgId = profile?.organizations?.[0]?.organizationId;
+  // Header fetch moved to child OrgHeader to avoid calling get without args
 
-  if (currentUser === undefined || currentOrg === undefined || profile === undefined) {
+  if (status === "loading" || currentUser === undefined || profile === undefined) {
     return (
       <div className="min-h-screen flex">
         <div className="hidden lg:block w-64 border-r border-border bg-card p-4 space-y-4">
@@ -36,7 +83,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }
 
-  if (!currentUser) {
+  if (!session?.user || !currentUser) {
     router.push("/sign-in");
     return null;
   }
@@ -45,61 +92,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row">
-      <Sidebar userRole={userRole} accentColor={currentOrg.accentColor} />
+      <Sidebar userRole={userRole} accentColor={"blue"} />
 
       <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <header className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur-sm">
-          <div className="flex items-center justify-between px-4 lg:px-6 h-16">
-            <div className="flex items-center gap-3">
-              {currentOrg.logo && (
-                <img
-                  src={currentOrg.logo}
-                  alt={currentOrg.name}
-                  className="h-8 w-8 rounded-lg object-cover"
-                />
-              )}
-              <div>
-                <h1 className="font-semibold">{currentOrg.name}</h1>
-                {currentOrg.verified && (
-                  <span className="text-xs text-muted-foreground">✓ Verified</span>
-                )}
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                className="p-2 rounded-lg hover:bg-accent transition-colors relative"
-                onClick={() => router.push("/chat")}
-              >
-                <MessageCircle className="h-5 w-5" />
-              </button>
-              <button className="p-2 rounded-lg hover:bg-accent transition-colors relative">
-                <Bell className="h-5 w-5" />
-              </button>
-              <div className="hidden lg:flex items-center gap-3 ml-4 pl-4 border-l border-border">
-                <div className="text-right">
-                  <p className="text-sm font-medium">
-                    {currentUser.firstName} {currentUser.lastName}
-                  </p>
-                  <p className="text-xs text-muted-foreground capitalize">{userRole}</p>
-                </div>
-                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                  <span className="text-sm font-medium text-primary">
-                    {currentUser.firstName[0]}
-                    {currentUser.lastName[0]}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </header>
+        <OrgHeader organizationId={orgId} />
 
         {/* Main Content */}
         <main className="flex-1 p-4 lg:p-6 pb-20 lg:pb-6">{children}</main>
       </div>
 
-      <MobileNav userRole={userRole} accentColor={currentOrg.accentColor} />
+      <MobileNav userRole={userRole} accentColor={currentOrg?.accentColor ?? "blue"} />
       
       {/* Floating Chat */}
       <FloatingChat />

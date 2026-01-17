@@ -16,7 +16,7 @@ export default function WorkerProfilePage() {
   const userId = session?.user?.id as any;
   const profile = useQuery(
     api.users.queries.getProfile,
-    userId ? { userId } : undefined
+    userId ? { userId } : "skip"
   );
   const tasks = useQuery(api.tasks.queries.listMine);
   // Skip calling org getCurrent until Convex auth token exchange is implemented
