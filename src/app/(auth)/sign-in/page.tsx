@@ -3,14 +3,13 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAuthActions } from "@convex-dev/auth/react";
+import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function SignInPage() {
   const router = useRouter();
-  const { signIn } = useAuthActions();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -21,14 +20,18 @@ export default function SignInPage() {
     setError("");
     setIsLoading(true);
 
-    try {
-      await signIn("password", { email, password, flow: "signIn" });
-      router.push("/dashboard");
-    } catch (err) {
+    const res = await signIn("password", {
+      email,
+      password,
+      flow: "signIn",
+      redirect: false,
+    });
+    if (res?.error) {
       setError("Invalid email or password");
-    } finally {
-      setIsLoading(false);
+    } else {
+      router.push("/dashboard");
     }
+    setIsLoading(false);
   }
 
   return (

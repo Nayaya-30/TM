@@ -7,14 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { User, Mail, Phone, Building2, Calendar, LogOut } from "lucide-react";
-import { useAuthActions } from "@convex-dev/auth/react";
+import { signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 
 export default function CustomerProfilePage() {
   const profile = useQuery(api.users.queries.getProfile);
   const currentOrg = useQuery(api.organizations.queries.getCurrent);
-  const { signOut } = useAuthActions();
   const router = useRouter();
 
   if (profile === undefined || currentOrg === undefined) {
@@ -28,7 +27,7 @@ export default function CustomerProfilePage() {
   }
 
   async function handleSignOut() {
-    await signOut();
+    await signOut({ redirect: false });
     router.push("/sign-in");
   }
 

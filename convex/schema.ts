@@ -12,6 +12,8 @@ export default defineSchema({
   users: defineTable({
     email: v.string(),
     emailVerified: v.boolean(),
+    passwordHash: v.optional(v.string()),
+    passwordSalt: v.optional(v.string()),
     phone: v.optional(v.string()),
     phoneVerified: v.boolean(),
     firstName: v.string(),

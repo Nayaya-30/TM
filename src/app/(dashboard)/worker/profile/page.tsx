@@ -7,15 +7,20 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { User, Mail, Star, TrendingUp, Award, LogOut } from "lucide-react";
-import { useAuthActions } from "@convex-dev/auth/react";
+import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 
 export default function WorkerProfilePage() {
-  const profile = useQuery(api.users.queries.getProfile);
+  const { data: session } = useSession();
+  const userId = session?.user?.id as any;
+  const profile = useQuery(
+    api.users.queries.getProfile,
+    userId ? { userId } : undefined
+  );
   const tasks = useQuery(api.tasks.queries.listMine);
-  const currentOrg = useQuery(api.organizations.queries.getCurrent);
-  const { signOut } = useAuthActions();
+  // Skip calling org getCurrent until Convex auth token exchange is implemented
+  const currentOrg = undefined as any;
   const router = useRouter();
 
   if (profile === undefined || tasks === undefined || currentOrg === undefined) {
@@ -36,7 +41,7 @@ export default function WorkerProfilePage() {
       : 0;
 
   async function handleSignOut() {
-    await signOut();
+    await signOut({ redirect: false });
     router.push("/sign-in");
   }
 

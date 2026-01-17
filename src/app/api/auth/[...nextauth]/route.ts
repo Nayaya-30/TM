@@ -1,12 +1,17 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import { ConvexClient } from "convex/browser";
+import crypto from "crypto";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "@/convex/_generated/api";
 
-const convex = new ConvexClient(process.env.CONVEX_URL);
+const convex = new ConvexHttpClient(
+  process.env.NEXT_PUBLIC_CONVEX_URL ?? process.env.CONVEX_URL!
+);
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+const handler = NextAuth({
   providers: [
     Credentials({
+      id: "password",
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
@@ -16,17 +21,42 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           throw new Error("Missing email or password");
         }
 
-        // TODO: Verify password against hashed password in database
-        // This is a placeholder - you'll need to implement proper password hashing
-        // For now, returning a basic user object
+        const flow = (credentials as any).flow as "signIn" | "signUp" | undefined;
 
-        const user = {
-          id: credentials.email, // Use email as temporary ID
-          email: credentials.email as string,
-          name: "User",
+        // Derive a hash and salt for password
+        const salt =
+          (credentials as any).salt ??
+          crypto.randomBytes(16).toString("hex");
+        const hash = crypto
+          .createHash("sha256")
+          .update(salt + credentials.password)
+          .digest("hex");
+
+        if (flow === "signUp") {
+          // Register or update password in Convex
+          await convex.mutation(api.users.mutations.registerPassword, {
+            email: credentials.email,
+            passwordHash: hash,
+            passwordSalt: salt,
+          });
+        }
+
+        // Verify credentials via Convex
+        const verified = await convex.mutation(api.users.mutations.verifyCredentials, {
+          email: credentials.email,
+          passwordHash: hash,
+        });
+
+        if (!verified) {
+          return null;
+        }
+
+        return {
+          id: verified.id,
+          email: verified.email,
+          name: verified.name ?? null,
+          image: verified.image ?? null,
         };
-
-        return user;
       },
     }),
   ],
@@ -59,7 +89,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             email: user.email,
             firstName: user.name?.split(" ")[0] || "User",
             lastName: user.name?.split(" ").slice(1).join(" ") || "",
-            avatar: user.image,
+            avatar: user.image ?? undefined,
           });
         }
       } catch (error) {
@@ -72,3 +102,5 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   secret: process.env.NEXTAUTH_SECRET,
 });
+
+export { handler as GET, handler as POST };

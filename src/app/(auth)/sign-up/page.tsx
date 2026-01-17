@@ -3,14 +3,13 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAuthActions } from "@convex-dev/auth/react";
+import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function SignUpPage() {
   const router = useRouter();
-  const { signIn } = useAuthActions();
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -38,23 +37,22 @@ export default function SignUpPage() {
 
     setIsLoading(true);
 
-    try {
-      await signIn("password", {
-        email: formData.email,
-        password: formData.password,
-        flow: "signUp",
-      });
-
+    const res = await signIn("password", {
+      email: formData.email,
+      password: formData.password,
+      flow: "signUp",
+      redirect: false,
+    });
+    if (res?.error) {
+      setError("Failed to create account. Email may already be in use.");
+    } else {
       if (accountType === "admin") {
         router.push("/onboarding");
       } else {
         router.push("/dashboard");
       }
-    } catch (err) {
-      setError("Failed to create account. Email may already be in use.");
-    } finally {
-      setIsLoading(false);
     }
+    setIsLoading(false);
   }
 
   return (

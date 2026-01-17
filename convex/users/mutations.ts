@@ -270,3 +270,72 @@ export const updatePhone = mutation({
     return await ctx.db.get(args.userId);
   },
 });
+
+export const registerPassword = mutation({
+  args: {
+    email: v.string(),
+    passwordHash: v.string(),
+    passwordSalt: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .first();
+
+    const now = Date.now();
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        passwordHash: args.passwordHash,
+        passwordSalt: args.passwordSalt,
+        updatedAt: now,
+      });
+      return existing._id;
+    }
+
+    const userId = await ctx.db.insert("users", {
+      email: args.email,
+      emailVerified: false,
+      phone: undefined,
+      phoneVerified: false,
+      firstName: "",
+      lastName: "",
+      avatar: undefined,
+      passwordHash: args.passwordHash,
+      passwordSalt: args.passwordSalt,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    return userId;
+  },
+});
+
+export const verifyCredentials = mutation({
+  args: {
+    email: v.string(),
+    passwordHash: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .first();
+
+    if (!user || !user.passwordHash) {
+      return null;
+    }
+
+    if (user.passwordHash !== args.passwordHash) {
+      return null;
+    }
+
+    return {
+      id: user._id,
+      email: user.email,
+      name: `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() || undefined,
+      image: user.avatar,
+    };
+  },
+});

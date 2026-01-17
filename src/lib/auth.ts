@@ -1,4 +1,4 @@
-import { auth } from '@/convex/auth.config';
+import { auth } from 'next-auth';
 
 /**
  * Get the current session for the authenticated user
