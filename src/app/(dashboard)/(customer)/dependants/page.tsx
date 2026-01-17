@@ -39,6 +39,16 @@ export default function DependantsPage() {
     );
   }
 
+  if (!customer) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">No customer profile found</p>
+        </div>
+      </div>
+    );
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setIsCreating(true);

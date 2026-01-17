@@ -10,12 +10,7 @@ function ConvexProviderInner({ children }: { children: ReactNode }) {
 	const { data: session } = useSession();
 
 	return (
-		<ConvexProvider
-			client={convex}
-			useAuth={() => {
-				return { isLoading: false };
-			}}
-		>
+		<ConvexProvider client={convex}>
 			{children}
 		</ConvexProvider>
 	);

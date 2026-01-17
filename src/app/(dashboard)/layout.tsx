@@ -53,7 +53,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const userId = session?.user?.id as any;
   const currentUser = useQuery(
     api.users.queries.getCurrentUser,
-    userId ? { userId } : undefined
+    userId ? { userId } : "skip"
   );
   const profile = useQuery(
     api.users.queries.getProfile,
