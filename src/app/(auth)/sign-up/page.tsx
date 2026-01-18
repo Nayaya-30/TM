@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,8 @@ import { api } from "@/convex/_generated/api";
 
 export default function SignUpPage() {
 	const router = useRouter();
+	const searchParams = useSearchParams();
+	const inviteToken = searchParams.get("token");
 	const [formData, setFormData] = useState({
 		firstName: "",
 		lastName: "",
@@ -23,8 +25,9 @@ export default function SignUpPage() {
 	const [isLoading, setIsLoading] = useState(false);
 	const [accountType, setAccountType] = useState<"customer" | "admin">("customer");
 
-	// ✅ Mutation that registers a new user with password
 	const signUpMutation = useMutation(api.users.mutations.signUpUser);
+	const acceptInvite = useMutation(api.members.mutations.acceptInvite);
+	const claimCustomerAccount = useMutation(api.customers.mutations.claimAccount);
 
 	async function handleSubmit(e: React.FormEvent) {
 		e.preventDefault();
@@ -51,11 +54,10 @@ export default function SignUpPage() {
 				role: accountType,
 			});
 
-			// 2️⃣ Sign in the user via NextAuth
 			const signInRes = await signIn("password", {
 				email: formData.email,
 				password: formData.password,
-				flow: "signIn", // <-- optional, depends on your NextAuth logic
+				flow: "signIn",
 				redirect: false,
 			});
 
@@ -64,7 +66,25 @@ export default function SignUpPage() {
 				return;
 			}
 
-			// 3️⃣ Redirect based on account type
+			if (inviteToken) {
+				let attached = false;
+				try {
+					await acceptInvite({ inviteToken });
+					attached = true;
+				} catch (err) {
+					try {
+						await claimCustomerAccount({ inviteToken });
+						attached = true;
+					} catch (err2) {
+					}
+				}
+
+				if (!attached) {
+					setError("Your invite link is invalid or has already been used.");
+					return;
+				}
+			}
+
 			if (accountType === "admin") {
 				router.push("/onboarding");
 			} else {

@@ -352,7 +352,7 @@ export const verifyCredentials = mutation({
 		if (!user || !user.passwordHash) return null;
 
 		// ✅ Compare bcrypt hash
-		const isValid = await bcrypt.compare(password, user.passwordHash);
+		const isValid = bcrypt.compareSync(password, user.passwordHash);
 		if (!isValid) return null;
 
 		return {
