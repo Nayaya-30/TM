@@ -1,6 +1,6 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import crypto from "crypto";
+import bcrypt from "bcryptjs";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "@/convex/_generated/api";
 
@@ -17,46 +17,34 @@ const handler = NextAuth({
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          throw new Error("Missing email or password");
-        }
+        if (!credentials?.email || !credentials?.password) return null;
 
-        const flow = (credentials as any).flow as "signIn" | "signUp" | undefined;
-
-        // Derive a hash and salt for password
-        const salt =
-          (credentials as any).salt ??
-          crypto.randomBytes(16).toString("hex");
-        const hash = crypto
-          .createHash("sha256")
-          .update(salt + credentials.password)
-          .digest("hex");
+        const flow = (credentials as any).flow as "signIn" | "signUp";
 
         if (flow === "signUp") {
-          // Register or update password in Convex
+          // ✅ Hash password with bcrypt
+          const hash = await bcrypt.hash(credentials.password, 12);
+
+          // Store hash in Convex
           await convex.mutation(api.users.mutations.registerPassword, {
             email: credentials.email,
             passwordHash: hash,
-            passwordSalt: salt,
+            passwordSalt: "", // salt handled by bcrypt
           });
         }
 
-        // Verify credentials via Convex
-        const verified = await convex.mutation(api.users.mutations.verifyCredentials, {
-          email: credentials.email,
-          passwordHash: hash,
-        });
+        // ✅ Verify credentials
+        const user = await convex.mutation(
+          api.users.mutations.verifyCredentials,
+          {
+            email: credentials.email,
+            password: credentials.password, // pass raw password
+          }
+        );
 
-        if (!verified) {
-          return null;
-        }
+        if (!user) return null;
 
-        return {
-          id: verified.id,
-          email: verified.email,
-          name: verified.name ?? null,
-          image: verified.image ?? null,
-        };
+        return user;
       },
     }),
   ],
@@ -81,7 +69,6 @@ const handler = NextAuth({
   },
   events: {
     async signIn({ user }) {
-      // Sync user to Convex on sign in
       try {
         if (user.email) {
           await convex.mutation(api.users.mutations.getOrCreateUser, {
@@ -96,9 +83,7 @@ const handler = NextAuth({
       }
     },
   },
-  session: {
-    strategy: "jwt",
-  },
+  session: { strategy: "jwt" },
   secret: process.env.NEXTAUTH_SECRET,
 });
 

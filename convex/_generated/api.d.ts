@@ -34,6 +34,7 @@ import type * as styles_mutations from "../styles/mutations.js";
 import type * as styles_queries from "../styles/queries.js";
 import type * as tasks_mutations from "../tasks/mutations.js";
 import type * as tasks_queries from "../tasks/queries.js";
+import type * as users_helpers from "../users/helpers.js";
 import type * as users_mutations from "../users/mutations.js";
 import type * as users_queries from "../users/queries.js";
 
@@ -70,6 +71,7 @@ declare const fullApi: ApiFromModules<{
   "styles/queries": typeof styles_queries;
   "tasks/mutations": typeof tasks_mutations;
   "tasks/queries": typeof tasks_queries;
+  "users/helpers": typeof users_helpers;
   "users/mutations": typeof users_mutations;
   "users/queries": typeof users_queries;
 }>;

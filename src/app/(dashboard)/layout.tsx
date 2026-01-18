@@ -4,22 +4,30 @@ import { useQuery } from "convex/react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { api } from "@/convex/_generated/api";
+
 import { Sidebar } from "@/components/layout/sidebar";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { FloatingChat } from "@/components/ui/floating-chat";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MessageCircle, Bell } from "lucide-react";
 
-function OrgHeader({ organizationId }: { organizationId: any }) {
+/* -------------------------------------------------------------------------- */
+/* ORG HEADER                                                                 */
+/* -------------------------------------------------------------------------- */
+
+function OrgHeader({ organizationId }: { organizationId: string | null }) {
   const org = useQuery(
     api.organizations.queries.get,
-    { organizationId }
+    organizationId ? { organizationId } : "skip"
   );
+
+  if (!org) return null;
+
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur-sm">
       <div className="flex items-center justify-between px-4 lg:px-6 h-16">
         <div className="flex items-center gap-3">
-          {org?.logo && (
+          {org.logo && (
             <img
               src={org.logo}
               alt={org.name}
@@ -27,19 +35,20 @@ function OrgHeader({ organizationId }: { organizationId: any }) {
             />
           )}
           <div>
-            <h1 className="font-semibold">{org?.name ?? "Organization"}</h1>
-            {org?.verified && (
-              <span className="text-xs text-muted-foreground">✓ Verified</span>
+            <h1 className="font-semibold">{org.name}</h1>
+            {org.verified && (
+              <span className="text-xs text-muted-foreground">
+                ✓ Verified
+              </span>
             )}
           </div>
         </div>
+
         <div className="flex items-center gap-2">
-          <button
-            className="p-2 rounded-lg hover:bg-accent transition-colors relative"
-          >
+          <button className="p-2 rounded-lg hover:bg-accent transition-colors">
             <MessageCircle className="h-5 w-5" />
           </button>
-          <button className="p-2 rounded-lg hover:bg-accent transition-colors relative">
+          <button className="p-2 rounded-lg hover:bg-accent transition-colors">
             <Bell className="h-5 w-5" />
           </button>
         </div>
@@ -47,64 +56,110 @@ function OrgHeader({ organizationId }: { organizationId: any }) {
     </header>
   );
 }
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+
+/* -------------------------------------------------------------------------- */
+/* DASHBOARD LAYOUT                                                           */
+/* -------------------------------------------------------------------------- */
+
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const router = useRouter();
   const { data: session, status } = useSession();
-  const userId = session?.user?.id as any;
-  const currentUser = useQuery(
-    api.users.queries.getCurrentUser,
-    userId ? { userId } : "skip"
-  );
-  const profile = useQuery(
-    api.users.queries.getProfile,
-    userId ? { userId } : undefined
-  );
-  const orgId = profile?.organizations?.[0]?.organizationId;
-  // Header fetch moved to child OrgHeader to avoid calling get without args
 
-  if (status === "loading" || currentUser === undefined || profile === undefined) {
-    return (
-      <div className="min-h-screen flex">
-        <div className="hidden lg:block w-64 border-r border-border bg-card p-4 space-y-4">
-          <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-12 w-full" />
-        </div>
-        <div className="flex-1 p-6">
-          <Skeleton className="h-8 w-48 mb-6" />
-          <div className="grid gap-4">
-            <Skeleton className="h-32 w-full" />
-            <Skeleton className="h-32 w-full" />
-            <Skeleton className="h-32 w-full" />
-          </div>
-        </div>
-      </div>
-    );
+  // 🚨 AUTH GATE — do not touch Convex yet
+  if (status === "loading") {
+    return <LoadingShell />;
   }
 
-  if (!session?.user || !currentUser) {
+  if (status === "unauthenticated" || !session?.user?.id) {
     router.push("/sign-in");
     return null;
   }
 
-  const userRole = profile.organizations[0]?.role as "admin" | "manager" | "worker" | "customer";
+  const userId = session.user.id as string;
+
+  /* --------------------------- CONVEX QUERIES --------------------------- */
+
+  const currentUser = useQuery(
+    api.users.queries.getCurrentUser,
+    { userId }
+  );
+
+  const profile = useQuery(
+    api.users.queries.getProfile,
+    { userId }
+  );
+
+  // Still loading Convex data
+  if (currentUser === undefined || profile === undefined) {
+    return <LoadingShell />;
+  }
+
+  // User deleted or invalid session
+  if (!currentUser || !profile) {
+    router.push("/sign-in");
+    return null;
+  }
+
+  /* --------------------------- DERIVED STATE ---------------------------- */
+
+  const primaryOrg = profile.organizations[0] ?? null;
+
+  const userRole =
+    (primaryOrg?.role as
+      | "admin"
+      | "manager"
+      | "worker"
+      | "customer") ?? "customer";
+
+  const organizationId = primaryOrg?.organizationId ?? null;
+  const accentColor = primaryOrg?.accentColor ?? "blue";
+
+  /* ------------------------------ RENDER ------------------------------- */
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row">
-      <Sidebar userRole={userRole} accentColor={"blue"} />
+      <Sidebar userRole={userRole} accentColor={accentColor} />
 
       <div className="flex-1 flex flex-col">
-        <OrgHeader organizationId={orgId} />
+        <OrgHeader organizationId={organizationId} />
 
-        {/* Main Content */}
-        <main className="flex-1 p-4 lg:p-6 pb-20 lg:pb-6">{children}</main>
+        <main className="flex-1 p-4 lg:p-6 pb-20 lg:pb-6">
+          {children}
+        </main>
       </div>
 
-      <MobileNav userRole={userRole} accentColor={currentOrg?.accentColor ?? "blue"} />
-      
-      {/* Floating Chat */}
+      <MobileNav userRole={userRole} accentColor={accentColor} />
+
       <FloatingChat />
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* LOADING SHELL                                                              */
+/* -------------------------------------------------------------------------- */
+
+function LoadingShell() {
+  return (
+    <div className="min-h-screen flex">
+      <div className="hidden lg:block w-64 border-r border-border bg-card p-4 space-y-4">
+        <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-12 w-full" />
+      </div>
+      <div className="flex-1 p-6">
+        <Skeleton className="h-8 w-48 mb-6" />
+        <div className="grid gap-4">
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-32 w-full" />
+        </div>
+      </div>
     </div>
   );
 }

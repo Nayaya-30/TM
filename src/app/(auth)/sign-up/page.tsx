@@ -7,175 +7,185 @@ import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
 
 export default function SignUpPage() {
-  const router = useRouter();
-  const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-  });
-  const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [accountType, setAccountType] = useState<"customer" | "admin">("customer");
+	const router = useRouter();
+	const [formData, setFormData] = useState({
+		firstName: "",
+		lastName: "",
+		email: "",
+		password: "",
+		confirmPassword: "",
+	});
+	const [error, setError] = useState("");
+	const [isLoading, setIsLoading] = useState(false);
+	const [accountType, setAccountType] = useState<"customer" | "admin">("customer");
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError("");
+	// ✅ Mutation that registers a new user with password
+	const signUpMutation = useMutation(api.users.mutations.signUpUser);
 
-    if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match");
-      return;
-    }
+	async function handleSubmit(e: React.FormEvent) {
+		e.preventDefault();
+		setError("");
 
-    if (formData.password.length < 8) {
-      setError("Password must be at least 8 characters");
-      return;
-    }
+		if (formData.password !== formData.confirmPassword) {
+			setError("Passwords do not match");
+			return;
+		}
 
-    setIsLoading(true);
+		if (formData.password.length < 8) {
+			setError("Password must be at least 8 characters");
+			return;
+		}
 
-    const res = await signIn("password", {
-      email: formData.email,
-      password: formData.password,
-      flow: "signUp",
-      redirect: false,
-    });
-    if (res?.error) {
-      setError("Failed to create account. Email may already be in use.");
-    } else {
-      if (accountType === "admin") {
-        router.push("/onboarding");
-      } else {
-        router.push("/dashboard");
-      }
-    }
-    setIsLoading(false);
-  }
+		setIsLoading(true);
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1 text-center">
-          <CardTitle className="text-3xl font-bold">Create Account</CardTitle>
-          <CardDescription>Choose your account type to get started</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-2 mb-6">
-            <Button
-              type="button"
-              variant={accountType === "customer" ? "primary" : "outline"}
-              className="flex-1"
-              onClick={() => setAccountType("customer")}
-            >
-              Customer
-            </Button>
-            <Button
-              type="button"
-              variant={accountType === "admin" ? "primary" : "outline"}
-              className="flex-1"
-              onClick={() => setAccountType("admin")}
-            >
-              Business Owner
-            </Button>
-          </div>
+		try {
+			// 1️⃣ Create the user in Convex with bcrypt hash
+			const userId = await signUpMutation({
+				email: formData.email,
+				password: formData.password,
+				firstName: formData.firstName,
+				lastName: formData.lastName,
+			});
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label htmlFor="firstName" className="text-sm font-medium">
-                  First Name
-                </label>
-                <Input
-                  id="firstName"
-                  placeholder="John"
-                  value={formData.firstName}
-                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                  required
-                  disabled={isLoading}
-                />
-              </div>
-              <div className="space-y-2">
-                <label htmlFor="lastName" className="text-sm font-medium">
-                  Last Name
-                </label>
-                <Input
-                  id="lastName"
-                  placeholder="Doe"
-                  value={formData.lastName}
-                  onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                  required
-                  disabled={isLoading}
-                />
-              </div>
-            </div>
+			// 2️⃣ Sign in the user via NextAuth
+			const signInRes = await signIn("password", {
+				email: formData.email,
+				password: formData.password,
+				flow: "signIn", // <-- optional, depends on your NextAuth logic
+				redirect: false,
+			});
 
-            <div className="space-y-2">
-              <label htmlFor="email" className="text-sm font-medium">
-                Email
-              </label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="you@example.com"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                required
-                disabled={isLoading}
-              />
-            </div>
+			if (signInRes?.error) {
+				setError("Failed to log in after signup");
+				return;
+			}
 
-            <div className="space-y-2">
-              <label htmlFor="password" className="text-sm font-medium">
-                Password
-              </label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                required
-                disabled={isLoading}
-              />
-            </div>
+			// 3️⃣ Redirect based on account type
+			if (accountType === "admin") {
+				router.push("/onboarding");
+			} else {
+				router.push("/dashboard");
+			}
+		} catch (err: any) {
+			setError("Something went wrong. Please try another email.");
+		} finally {
+			setIsLoading(false);
+		}
+	}
 
-            <div className="space-y-2">
-              <label htmlFor="confirmPassword" className="text-sm font-medium">
-                Confirm Password
-              </label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                placeholder="••••••••"
-                value={formData.confirmPassword}
-                onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                required
-                disabled={isLoading}
-              />
-            </div>
+	return (
+		<div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted p-4">
+			<Card className="w-full max-w-md">
+				<CardHeader className="space-y-1 text-center">
+					<CardTitle className="text-3xl font-bold">Create Account</CardTitle>
+					<CardDescription>Choose your account type to get started</CardDescription>
+				</CardHeader>
+				<CardContent>
+					<div className="flex gap-2 mb-6">
+						<Button
+							type="button"
+							variant={accountType === "customer" ? "primary" : "outline"}
+							className="flex-1"
+							onClick={() => setAccountType("customer")}
+						>
+							Customer
+						</Button>
+						<Button
+							type="button"
+							variant={accountType === "admin" ? "primary" : "outline"}
+							className="flex-1"
+							onClick={() => setAccountType("admin")}
+						>
+							Business Owner
+						</Button>
+					</div>
 
-            {error && (
-              <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
-                {error}
-              </div>
-            )}
+					<form onSubmit={handleSubmit} className="space-y-4">
+						{/* First Name / Last Name */}
+						<div className="grid grid-cols-2 gap-4">
+							<div className="space-y-2">
+								<label htmlFor="firstName" className="text-sm font-medium">First Name</label>
+								<Input
+									id="firstName"
+									placeholder="John"
+									value={formData.firstName}
+									onChange={e => setFormData({ ...formData, firstName: e.target.value })}
+									required
+									disabled={isLoading}
+								/>
+							</div>
+							<div className="space-y-2">
+								<label htmlFor="lastName" className="text-sm font-medium">Last Name</label>
+								<Input
+									id="lastName"
+									placeholder="Doe"
+									value={formData.lastName}
+									onChange={e => setFormData({ ...formData, lastName: e.target.value })}
+									required
+									disabled={isLoading}
+								/>
+							</div>
+						</div>
 
-            <Button type="submit" className="w-full" isLoading={isLoading}>
-              Create Account
-            </Button>
-          </form>
+						{/* Email */}
+						<div className="space-y-2">
+							<label htmlFor="email" className="text-sm font-medium">Email</label>
+							<Input
+								id="email"
+								type="email"
+								placeholder="you@example.com"
+								value={formData.email}
+								onChange={e => setFormData({ ...formData, email: e.target.value })}
+								required
+								disabled={isLoading}
+							/>
+						</div>
 
-          <div className="mt-6 text-center text-sm">
-            <span className="text-muted-foreground">Already have an account? </span>
-            <Link href="/sign-in" className="font-medium text-primary hover:underline">
-              Sign in
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
+						{/* Password */}
+						<div className="space-y-2">
+							<label htmlFor="password" className="text-sm font-medium">Password</label>
+							<Input
+								id="password"
+								type="password"
+								placeholder="••••••••"
+								value={formData.password}
+								onChange={e => setFormData({ ...formData, password: e.target.value })}
+								required
+								disabled={isLoading}
+							/>
+						</div>
+
+						{/* Confirm Password */}
+						<div className="space-y-2">
+							<label htmlFor="confirmPassword" className="text-sm font-medium">Confirm Password</label>
+							<Input
+								id="confirmPassword"
+								type="password"
+								placeholder="••••••••"
+								value={formData.confirmPassword}
+								onChange={e => setFormData({ ...formData, confirmPassword: e.target.value })}
+								required
+								disabled={isLoading}
+							/>
+						</div>
+
+						{error && (
+							<div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{error}</div>
+						)}
+
+						<Button type="submit" className="w-full" isLoading={isLoading}>Create Account</Button>
+					</form>
+
+					<div className="mt-6 text-center text-sm">
+						<span className="text-muted-foreground">Already have an account? </span>
+						<Link href="/sign-in" className="font-medium text-primary hover:underline">Sign in</Link>
+					</div>
+				</CardContent>
+			</Card>
+		</div>
+	);
 }

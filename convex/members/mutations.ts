@@ -4,99 +4,107 @@ import { ConvexError } from "convex/values";
 import { getCurrentUserContext, hasPermission } from "../helpers/auth";
 import { Id } from "../_generated/dataModel";
 import { generateInviteToken, isValidEmail } from "../helpers/utils";
+import { requireUser } from "../users/helpers";
 
 // ============================================================================
 // INVITE USER TO ORGANIZATION
 // ============================================================================
 
 export const invite = mutation({
-  args: {
-    email: v.string(),
-    role: v.union(
-      v.literal("admin"),
-      v.literal("manager"),
-      v.literal("worker"),
-      v.literal("customer")
-    ),
-  },
-  handler: async (ctx, args) => {
-    const { userId, organizationId, role: currentUserRole } = await getCurrentUserContext(ctx);
+	args: {
+		email: v.string(),
+		role: v.union(
+			v.literal("admin"),
+			v.literal("manager"),
+			v.literal("worker"),
+			v.literal("customer")
+		),
+	},
+	handler: async (ctx, args) => {
+		const identity = await ctx.auth.getUserIdentity();
 
-    // Check permissions
-    if (!hasPermission(currentUserRole, "workers", "create")) {
-      throw new ConvexError("Insufficient permissions to invite users");
-    }
+		if (!identity) {
+			throw new ConvexError("Unauthenticated");
+		}
+		
+		const { userId, organizationId, role: currentUserRole } = await getCurrentUserContext(ctx);
 
-    // Validate email
-    if (!isValidEmail(args.email)) {
-      throw new ConvexError("Invalid email address");
-    }
+		// Check permissions
+		if (!hasPermission(currentUserRole, "workers", "create")) {
+			throw new ConvexError("Insufficient permissions to invite users");
+		}
 
-    // Check if user already exists
-    const existingUser = await ctx.db
-      .query("users")
-      .filter((q) => q.eq(q.field("email"), args.email))
-      .first();
+		// Validate email
+		if (!isValidEmail(args.email)) {
+			throw new ConvexError("Invalid email address");
+		}
 
-    // Check if already a member
-    if (existingUser) {
-      const existingMembership = await ctx.db
-        .query("orgMemberships")
-        .withIndex("by_user_org", (q) =>
-          q.eq("userId", existingUser._id).eq("organizationId", organizationId)
-        )
-        .first();
+		// Check if user already exists
+		const existingUser = await ctx.db
+			.query("users")
+			.filter((q) => q.eq(q.field("email"), args.email))
+			.first();
 
-      if (existingMembership) {
-        throw new ConvexError("User is already a member of this organization");
-      }
-    }
+		// Check if already a member
+		if (existingUser) {
+			const existingMembership = await ctx.db
+				.query("orgMemberships")
+				.withIndex("by_user_org", (q) =>
+					q.eq("userId", existingUser._id).eq("organizationId", organizationId)
+				)
+				.first();
 
-    const inviteToken = generateInviteToken();
-    const now = Date.now();
+			if (existingMembership) {
+				throw new ConvexError("User is already a member of this organization");
+			}
+		}
 
-    let targetUserId = existingUser?._id;
+		const inviteToken = generateInviteToken();
+		const now = Date.now();
 
-    // If user doesn't exist, create a placeholder
-    if (!existingUser) {
-      targetUserId = await ctx.db.insert("users", {
-        email: args.email,
-        firstName: "",
-        lastName: "",
-        emailVerified: false,
-        phoneVerified: false,
-        createdAt: now,
-        updatedAt: now,
-      });
-    }
+		let targetUserId = existingUser?._id;
 
-    // Create membership with pending invite
-    const membershipId = await ctx.db.insert("orgMemberships", {
-      userId: targetUserId!,
-      organizationId,
-      role: args.role,
-      invitedBy: userId,
-      inviteAccepted: false,
-      inviteToken,
-      joinedAt: now,
-    });
+		// If user doesn't exist, create a placeholder
+		if (!existingUser) {
+			targetUserId = await ctx.db.insert("users", {
+				email: args.email,
+				firstName: "",
+				lastName: "",
+				emailVerified: false,
+				phoneVerified: false,
+				createdAt: now,
+				updatedAt: now,
+				authSubject: identity?.subject || "",
+			});
+		}
 
-    // Create audit log
-    await ctx.db.insert("auditLogs", {
-      organizationId,
-      userId,
-      action: "create",
-      resource: "invitation",
-      resourceId: membershipId,
-      metadata: { email: args.email, role: args.role },
-      createdAt: now,
-    });
+		// Create membership with pending invite
+		const membershipId = await ctx.db.insert("orgMemberships", {
+			userId: targetUserId!,
+			organizationId,
+			role: args.role,
+			invitedBy: userId,
+			inviteAccepted: false,
+			inviteToken,
+			joinedAt: now,
+		});
 
-    // TODO: Send email with invite token
-    // await sendInviteEmail(args.email, inviteToken, organizationId);
+		// Create audit log
+		await ctx.db.insert("auditLogs", {
+			organizationId,
+			userId,
+			action: "create",
+			resource: "invitation",
+			resourceId: membershipId,
+			metadata: { email: args.email, role: args.role },
+			createdAt: now,
+		});
 
-    return { membershipId, inviteToken };
-  },
+		// TODO: Send email with invite token
+		// await sendInviteEmail(args.email, inviteToken, organizationId);
+
+		return { membershipId, inviteToken };
+	},
 });
 
 // ============================================================================
@@ -104,51 +112,52 @@ export const invite = mutation({
 // ============================================================================
 
 export const acceptInvite = mutation({
-  args: {
-    inviteToken: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    
-    if (!identity) {
-      throw new ConvexError("Unauthenticated");
-    }
+	args: {
+		inviteToken: v.string(),
+	},
+	handler: async (ctx, args) => {
+		const identity = await ctx.auth.getUserIdentity();
 
-    const userId = identity.subject as Id<"users">;
+		if (!identity) {
+			throw new ConvexError("Unauthenticated");
+		}
 
-    const membership = await ctx.db
-      .query("orgMemberships")
-      .withIndex("by_invite_token", (q) => q.eq("inviteToken", args.inviteToken))
-      .first();
+		const user = await requireUser(ctx);
+		const userId = user._id;
 
-    if (!membership) {
-      throw new ConvexError("Invalid invite token");
-    }
+		const membership = await ctx.db
+			.query("orgMemberships")
+			.withIndex("by_invite_token", (q) => q.eq("inviteToken", args.inviteToken))
+			.first();
 
-    if (membership.inviteAccepted) {
-      throw new ConvexError("Invitation already accepted");
-    }
+		if (!membership) {
+			throw new ConvexError("Invalid invite token");
+		}
 
-    // Update membership
-    await ctx.db.patch(membership._id, {
-      userId,
-      inviteAccepted: true,
-      joinedAt: Date.now(),
-    });
+		if (membership.inviteAccepted) {
+			throw new ConvexError("Invitation already accepted");
+		}
 
-    // Create audit log
-    await ctx.db.insert("auditLogs", {
-      organizationId: membership.organizationId,
-      userId,
-      action: "update",
-      resource: "invitation",
-      resourceId: membership._id,
-      metadata: { accepted: true },
-      createdAt: Date.now(),
-    });
+		// Update membership
+		await ctx.db.patch(membership._id, {
+			userId,
+			inviteAccepted: true,
+			joinedAt: Date.now(),
+		});
 
-    return membership.organizationId;
-  },
+		// Create audit log
+		await ctx.db.insert("auditLogs", {
+			organizationId: membership.organizationId,
+			userId,
+			action: "update",
+			resource: "invitation",
+			resourceId: membership._id,
+			metadata: { accepted: true },
+			createdAt: Date.now(),
+		});
+
+		return membership.organizationId;
+	},
 });
 
 // ============================================================================
@@ -156,50 +165,50 @@ export const acceptInvite = mutation({
 // ============================================================================
 
 export const updateRole = mutation({
-  args: {
-    membershipId: v.id("orgMemberships"),
-    newRole: v.union(
-      v.literal("admin"),
-      v.literal("manager"),
-      v.literal("worker"),
-      v.literal("customer")
-    ),
-  },
-  handler: async (ctx, args) => {
-    const { userId, organizationId, role: currentUserRole } = await getCurrentUserContext(ctx);
+	args: {
+		membershipId: v.id("orgMemberships"),
+		newRole: v.union(
+			v.literal("admin"),
+			v.literal("manager"),
+			v.literal("worker"),
+			v.literal("customer")
+		),
+	},
+	handler: async (ctx, args) => {
+		const { userId, organizationId, role: currentUserRole } = await getCurrentUserContext(ctx);
 
-    // Only admin can change roles
-    if (currentUserRole !== "admin") {
-      throw new ConvexError("Only admins can change user roles");
-    }
+		// Only admin can change roles
+		if (currentUserRole !== "admin") {
+			throw new ConvexError("Only admins can change user roles");
+		}
 
-    const membership = await ctx.db.get(args.membershipId);
+		const membership = await ctx.db.get(args.membershipId);
 
-    if (!membership) {
-      throw new ConvexError("Membership not found");
-    }
+		if (!membership) {
+			throw new ConvexError("Membership not found");
+		}
 
-    if (membership.organizationId !== organizationId) {
-      throw new ConvexError("Membership belongs to different organization");
-    }
+		if (membership.organizationId !== organizationId) {
+			throw new ConvexError("Membership belongs to different organization");
+		}
 
-    await ctx.db.patch(args.membershipId, {
-      role: args.newRole,
-    });
+		await ctx.db.patch(args.membershipId, {
+			role: args.newRole,
+		});
 
-    // Create audit log
-    await ctx.db.insert("auditLogs", {
-      organizationId,
-      userId,
-      action: "update",
-      resource: "membership_role",
-      resourceId: args.membershipId,
-      metadata: { oldRole: membership.role, newRole: args.newRole },
-      createdAt: Date.now(),
-    });
+		// Create audit log
+		await ctx.db.insert("auditLogs", {
+			organizationId,
+			userId,
+			action: "update",
+			resource: "membership_role",
+			resourceId: args.membershipId,
+			metadata: { oldRole: membership.role, newRole: args.newRole },
+			createdAt: Date.now(),
+		});
 
-    return args.membershipId;
-  },
+		return args.membershipId;
+	},
 });
 
 // ============================================================================
@@ -207,53 +216,53 @@ export const updateRole = mutation({
 // ============================================================================
 
 export const remove = mutation({
-  args: {
-    membershipId: v.id("orgMemberships"),
-  },
-  handler: async (ctx, args) => {
-    const { userId, organizationId, role: currentUserRole } = await getCurrentUserContext(ctx);
+	args: {
+		membershipId: v.id("orgMemberships"),
+	},
+	handler: async (ctx, args) => {
+		const { userId, organizationId, role: currentUserRole } = await getCurrentUserContext(ctx);
 
-    // Only admin can remove members
-    if (currentUserRole !== "admin") {
-      throw new ConvexError("Only admins can remove members");
-    }
+		// Only admin can remove members
+		if (currentUserRole !== "admin") {
+			throw new ConvexError("Only admins can remove members");
+		}
 
-    const membership = await ctx.db.get(args.membershipId);
+		const membership = await ctx.db.get(args.membershipId);
 
-    if (!membership) {
-      throw new ConvexError("Membership not found");
-    }
+		if (!membership) {
+			throw new ConvexError("Membership not found");
+		}
 
-    if (membership.organizationId !== organizationId) {
-      throw new ConvexError("Membership belongs to different organization");
-    }
+		if (membership.organizationId !== organizationId) {
+			throw new ConvexError("Membership belongs to different organization");
+		}
 
-    // Cannot remove yourself if you're the only admin
-    if (membership.userId === userId && membership.role === "admin") {
-      const adminCount = await ctx.db
-        .query("orgMemberships")
-        .withIndex("by_org", (q) => q.eq("organizationId", organizationId))
-        .filter((q) => q.eq(q.field("role"), "admin"))
-        .collect();
+		// Cannot remove yourself if you're the only admin
+		if (membership.userId === userId && membership.role === "admin") {
+			const adminCount = await ctx.db
+				.query("orgMemberships")
+				.withIndex("by_org", (q) => q.eq("organizationId", organizationId))
+				.filter((q) => q.eq(q.field("role"), "admin"))
+				.collect();
 
-      if (adminCount.length === 1) {
-        throw new ConvexError("Cannot remove the last admin");
-      }
-    }
+			if (adminCount.length === 1) {
+				throw new ConvexError("Cannot remove the last admin");
+			}
+		}
 
-    await ctx.db.delete(args.membershipId);
+		await ctx.db.delete(args.membershipId);
 
-    // Create audit log
-    await ctx.db.insert("auditLogs", {
-      organizationId,
-      userId,
-      action: "delete",
-      resource: "membership",
-      resourceId: args.membershipId,
-      metadata: { removedUserId: membership.userId, role: membership.role },
-      createdAt: Date.now(),
-    });
+		// Create audit log
+		await ctx.db.insert("auditLogs", {
+			organizationId,
+			userId,
+			action: "delete",
+			resource: "membership",
+			resourceId: args.membershipId,
+			metadata: { removedUserId: membership.userId, role: membership.role },
+			createdAt: Date.now(),
+		});
 
-    return args.membershipId;
-  },
+		return args.membershipId;
+	},
 });
