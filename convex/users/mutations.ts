@@ -161,45 +161,51 @@ export const updateAvatar = mutation({
 // ============================================================================
 
 export const signUpUser = mutation({
-  args: {
-    email: v.string(),
-    password: v.string(),
-    firstName: v.optional(v.string()),
-    lastName: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    const existing = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.email))
-      .first();
+	args: {
+		email: v.string(),
+		password: v.string(),
+		firstName: v.optional(v.string()),
+		lastName: v.optional(v.string()),
+		role: v.union(
+			v.literal("admin"),
+			v.literal("manager"),
+			v.literal("worker"),
+			v.literal("customer"),
+		),
+	},
+	handler: async (ctx, args) => {
+		const existing = await ctx.db
+			.query("users")
+			.withIndex("by_email", (q) => q.eq("email", args.email))
+			.first();
 
-    if (existing) {
-      throw new Error("Email already exists");
-    }
+		if (existing) {
+			throw new Error("Email already exists");
+		}
 
-    // Hash password
-    const salt = bcrypt.genSaltSync(10);
-    const hash = bcrypt.hashSync(args.password, salt);
+		const salt = bcrypt.genSaltSync(10);
+		const hash = bcrypt.hashSync(args.password, salt);
 
-    const now = Date.now();
+		const now = Date.now();
 
-    const userId = await ctx.db.insert("users", {
-      email: args.email,
-      passwordHash: hash,
-      passwordSalt: salt,
-      firstName: args.firstName || args.email.split("@")[0],
-      lastName: args.lastName || "",
-      emailVerified: false,
-      phone: undefined,
-      phoneVerified: false,
-      avatar: undefined,
-      authSubject: null, // not authenticated yet
-      createdAt: now,
-      updatedAt: now,
-    });
+		const userId = await ctx.db.insert("users", {
+			email: args.email,
+			passwordHash: hash,
+			passwordSalt: salt,
+			firstName: args.firstName || args.email.split("@")[0],
+			lastName: args.lastName || "",
+			emailVerified: false,
+			phone: undefined,
+			phoneVerified: false,
+			avatar: undefined,
+			authSubject: null,
+			role: args.role,
+			createdAt: now,
+			updatedAt: now,
+		});
 
-    return userId;
-  },
+		return userId;
+	},
 });
 
 // ============================================================================

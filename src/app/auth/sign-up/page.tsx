@@ -40,6 +40,9 @@ export default function SignUpPage() {
     const res = await signIn("password", {
       email: formData.email,
       password: formData.password,
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      role: accountType,
       flow: "signUp",
       redirect: false,
     });

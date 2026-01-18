@@ -43,12 +43,12 @@ export default function SignUpPage() {
 		setIsLoading(true);
 
 		try {
-			// 1️⃣ Create the user in Convex with bcrypt hash
 			const userId = await signUpMutation({
 				email: formData.email,
 				password: formData.password,
 				firstName: formData.firstName,
 				lastName: formData.lastName,
+				role: accountType,
 			});
 
 			// 2️⃣ Sign in the user via NextAuth

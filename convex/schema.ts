@@ -20,6 +20,14 @@ export default defineSchema({
 		firstName: v.string(),
 		lastName: v.string(),
 		avatar: v.optional(v.string()),
+		role: v.optional(
+			v.union(
+				v.literal("admin"),
+				v.literal("manager"),
+				v.literal("worker"),
+				v.literal("customer"),
+			),
+		),
 		createdAt: v.float64(),
 		updatedAt: v.float64(),
 	})

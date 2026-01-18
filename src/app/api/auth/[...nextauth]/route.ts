@@ -1,6 +1,5 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import bcrypt from "bcryptjs";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "@/convex/_generated/api";
 
@@ -19,28 +18,22 @@ const handler = NextAuth({
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
 
-        const flow = (credentials as any).flow as "signIn" | "signUp";
+        const flow = (credentials as any).flow as "signIn" | "signUp" | undefined;
 
         if (flow === "signUp") {
-          // ✅ Hash password with bcrypt
-          const hash = await bcrypt.hash(credentials.password, 12);
-
-          // Store hash in Convex
-          await convex.mutation(api.users.mutations.registerPassword, {
+          await convex.mutation(api.users.mutations.signUpUser, {
             email: credentials.email,
-            passwordHash: hash,
-            passwordSalt: "", // salt handled by bcrypt
+            password: credentials.password,
+            firstName: (credentials as any).firstName,
+            lastName: (credentials as any).lastName,
+            role: (credentials as any).role ?? "customer",
           });
         }
 
-        // ✅ Verify credentials
-        const user = await convex.mutation(
-          api.users.mutations.verifyCredentials,
-          {
-            email: credentials.email,
-            password: credentials.password, // pass raw password
-          }
-        );
+        const user = await convex.mutation(api.users.mutations.verifyCredentials, {
+          email: credentials.email,
+          password: credentials.password,
+        });
 
         if (!user) return null;
 
