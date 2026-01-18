@@ -360,6 +360,7 @@ export const verifyCredentials = mutation({
 			email: user.email,
 			name: `${user.firstName} ${user.lastName}`,
 			image: user.avatar ?? null,
+			role: user.role ?? "customer",
 		};
 	},
 });

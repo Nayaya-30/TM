@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { signIn } from "next-auth/react";
+import { signIn, getSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,11 +26,27 @@ export default function SignInPage() {
       flow: "signIn",
       redirect: false,
     });
+
     if (res?.error) {
       setError("Invalid email or password");
+      setIsLoading(false);
+      return;
+    }
+
+    const session = await getSession();
+    const role = (session?.user as any)?.role as
+      | "admin"
+      | "manager"
+      | "worker"
+      | "customer"
+      | undefined;
+
+    if (role === "admin") {
+      router.push("/admin/dashboard");
     } else {
       router.push("/dashboard");
     }
+
     setIsLoading(false);
   }
 

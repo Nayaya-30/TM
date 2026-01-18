@@ -49,6 +49,8 @@ const handler = NextAuth({
       if (user) {
         token.id = user.id;
         token.email = user.email;
+        // @ts-expect-error role is added by Convex verifyCredentials
+        token.role = user.role ?? token.role;
       }
       return token;
     },
@@ -56,6 +58,13 @@ const handler = NextAuth({
       if (session.user) {
         session.user.id = token.id as string;
         session.user.email = token.email as string;
+        // @ts-expect-error role is added to JWT in jwt callback
+        session.user.role = token.role as
+          | "admin"
+          | "manager"
+          | "worker"
+          | "customer"
+          | undefined;
       }
       return session;
     },
