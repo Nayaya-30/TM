@@ -73,7 +73,7 @@ const handler = NextAuth({
     async signIn({ user }) {
       try {
         if (user.email) {
-          await convex.mutation(api.users.mutations.getOrCreateUser, {
+          await convex.mutation(api.users.mutations.signUpUser, {
             email: user.email,
             firstName: user.name?.split(" ")[0] || "User",
             lastName: user.name?.split(" ").slice(1).join(" ") || "",

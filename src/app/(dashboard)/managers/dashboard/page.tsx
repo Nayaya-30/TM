@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Package, Users, ListChecks, AlertTriangle } from "lucide-react";
+import { Package, Users, ListChecks, AlertTriangle, Plus } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
 
@@ -23,80 +23,101 @@ export default function ManagerDashboardPage() {
     workers === undefined
   ) {
     return (
-      <div className="space-y-6">
-        <Skeleton className="h-8 w-64" />
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Skeleton className="h-32" />
-          <Skeleton className="h-32" />
-          <Skeleton className="h-32" />
-          <Skeleton className="h-32" />
+      <div className="space-y-8 p-4">
+        <div className="flex flex-col gap-2">
+           <Skeleton className="h-10 w-64 rounded-xl" />
+           <Skeleton className="h-5 w-96 rounded-xl" />
         </div>
-        <Skeleton className="h-64" />
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          {[...Array(4)].map((_, i) => (
+             <Skeleton key={i} className="h-40 rounded-3xl" />
+          ))}
+        </div>
+        <Skeleton className="h-96 rounded-3xl" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Manager Dashboard</h1>
-          <p className="text-muted-foreground">Oversee orders, tasks, and team performance</p>
+          <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/60 bg-clip-text text-transparent">
+            Manager Dashboard
+          </h1>
+          <p className="text-lg text-muted-foreground mt-2">
+            Oversee orders, tasks, and team performance
+          </p>
         </div>
         <Link href="/manager/orders">
-          <Button>Create Order</Button>
+          <Button className="rounded-full shadow-lg hover:shadow-xl transition-all">
+            <Plus className="h-4 w-4 mr-2" />
+            Create Order
+          </Button>
         </Link>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
+      {/* Stats Bento Grid */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="group relative overflow-hidden rounded-3xl border-border/50 bg-card/50 backdrop-blur-sm hover:shadow-lg transition-all duration-300">
+           <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Orders</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
+            <div className="h-8 w-8 rounded-full bg-blue-500/10 flex items-center justify-center">
+               <Package className="h-4 w-4 text-blue-500" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{ordersSummary.active}</div>
-            <p className="text-xs text-muted-foreground">
+            <div className="text-3xl font-bold">{ordersSummary.active}</div>
+            <p className="text-xs text-muted-foreground mt-1">
               {ordersSummary.overdue} overdue
             </p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="group relative overflow-hidden rounded-3xl border-border/50 bg-card/50 backdrop-blur-sm hover:shadow-lg transition-all duration-300">
+           <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Tasks</CardTitle>
-            <ListChecks className="h-4 w-4 text-muted-foreground" />
+            <div className="h-8 w-8 rounded-full bg-indigo-500/10 flex items-center justify-center">
+               <ListChecks className="h-4 w-4 text-indigo-500" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{tasksSummary.total - tasksSummary.completed}</div>
-            <p className="text-xs text-muted-foreground">
+            <div className="text-3xl font-bold">{tasksSummary.total - tasksSummary.completed}</div>
+            <p className="text-xs text-muted-foreground mt-1">
               {tasksSummary.completed} completed
             </p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="group relative overflow-hidden rounded-3xl border-border/50 bg-card/50 backdrop-blur-sm hover:shadow-lg transition-all duration-300">
+           <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Workers</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <div className="h-8 w-8 rounded-full bg-purple-500/10 flex items-center justify-center">
+               <Users className="h-4 w-4 text-purple-500" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{workers.length}</div>
-            <p className="text-xs text-muted-foreground">Active team members</p>
+            <div className="text-3xl font-bold">{workers.length}</div>
+            <p className="text-xs text-muted-foreground mt-1">Active team members</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="group relative overflow-hidden rounded-3xl border-border/50 bg-card/50 backdrop-blur-sm hover:shadow-lg transition-all duration-300">
+           <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Alerts</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-destructive" />
+            <div className="h-8 w-8 rounded-full bg-red-500/10 flex items-center justify-center">
+               <AlertTriangle className="h-4 w-4 text-red-500" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-destructive">
+            <div className="text-3xl font-bold text-red-500">
               {ordersSummary.overdue + tasksSummary.overdue}
             </div>
-            <p className="text-xs text-muted-foreground">Need attention</p>
+            <p className="text-xs text-muted-foreground mt-1">Need attention</p>
           </CardContent>
         </Card>
       </div>

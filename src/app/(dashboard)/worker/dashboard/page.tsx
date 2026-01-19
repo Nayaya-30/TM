@@ -15,15 +15,17 @@ export default function WorkerDashboardPage() {
 
   if (tasks === undefined) {
     return (
-      <div className="space-y-6">
-        <Skeleton className="h-8 w-64" />
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Skeleton className="h-32" />
-          <Skeleton className="h-32" />
-          <Skeleton className="h-32" />
-          <Skeleton className="h-32" />
+      <div className="space-y-8 p-4">
+        <div className="flex flex-col gap-2">
+           <Skeleton className="h-10 w-64 rounded-xl" />
+           <Skeleton className="h-5 w-96 rounded-xl" />
         </div>
-        <Skeleton className="h-64" />
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          {[...Array(4)].map((_, i) => (
+             <Skeleton key={i} className="h-40 rounded-3xl" />
+          ))}
+        </div>
+        <Skeleton className="h-96 rounded-3xl" />
       </div>
     );
   }
@@ -35,66 +37,83 @@ export default function WorkerDashboardPage() {
   const dueSoon = tasks.filter((t) => t.isAlmostDue && t.status !== "completed");
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">My Tasks</h1>
-          <p className="text-muted-foreground">Track your assigned tasks and deadlines</p>
+          <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/60 bg-clip-text text-transparent">
+            My Tasks
+          </h1>
+          <p className="text-lg text-muted-foreground mt-2">
+            Track your assigned tasks and deadlines
+          </p>
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
+      {/* Stats Bento Grid */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="group relative overflow-hidden rounded-3xl border-border/50 bg-card/50 backdrop-blur-sm hover:shadow-lg transition-all duration-300">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Pending</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
+            <div className="h-8 w-8 rounded-full bg-blue-500/10 flex items-center justify-center">
+               <Clock className="h-4 w-4 text-blue-500" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{pendingTasks.length}</div>
-            <p className="text-xs text-muted-foreground">Not started</p>
+            <div className="text-3xl font-bold">{pendingTasks.length}</div>
+            <p className="text-xs text-muted-foreground mt-1">Not started</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="group relative overflow-hidden rounded-3xl border-border/50 bg-card/50 backdrop-blur-sm hover:shadow-lg transition-all duration-300">
+           <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">In Progress</CardTitle>
-            <ListChecks className="h-4 w-4 text-muted-foreground" />
+            <div className="h-8 w-8 rounded-full bg-amber-500/10 flex items-center justify-center">
+               <ListChecks className="h-4 w-4 text-amber-500" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{inProgressTasks.length}</div>
-            <p className="text-xs text-muted-foreground">Working on</p>
+            <div className="text-3xl font-bold">{inProgressTasks.length}</div>
+            <p className="text-xs text-muted-foreground mt-1">Working on</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="group relative overflow-hidden rounded-3xl border-border/50 bg-card/50 backdrop-blur-sm hover:shadow-lg transition-all duration-300">
+           <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Completed</CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+            <div className="h-8 w-8 rounded-full bg-green-500/10 flex items-center justify-center">
+               <CheckCircle2 className="h-4 w-4 text-green-500" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{completedTasks.length}</div>
-            <p className="text-xs text-muted-foreground">Finished</p>
+            <div className="text-3xl font-bold">{completedTasks.length}</div>
+            <p className="text-xs text-muted-foreground mt-1">Finished</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="group relative overflow-hidden rounded-3xl border-border/50 bg-card/50 backdrop-blur-sm hover:shadow-lg transition-all duration-300">
+           <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Overdue</CardTitle>
-            <AlertCircle className="h-4 w-4 text-destructive" />
+             <div className="h-8 w-8 rounded-full bg-red-500/10 flex items-center justify-center">
+               <AlertCircle className="h-4 w-4 text-red-500" />
+             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-destructive">{overdueTasks.length}</div>
-            <p className="text-xs text-muted-foreground">Need attention</p>
+            <div className="text-3xl font-bold text-red-500">{overdueTasks.length}</div>
+            <p className="text-xs text-muted-foreground mt-1">Need attention</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Overdue Tasks Alert */}
       {overdueTasks.length > 0 && (
-        <Card className="border-destructive bg-destructive/5">
+        <Card className="border-red-500/20 bg-red-500/5 rounded-2xl overflow-hidden">
+          <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-500" />
           <CardHeader>
-            <CardTitle className="text-destructive flex items-center gap-2">
+            <CardTitle className="text-red-500 flex items-center gap-2">
               <AlertCircle className="h-5 w-5" />
               {overdueTasks.length} Overdue Task{overdueTasks.length > 1 ? "s" : ""}
             </CardTitle>

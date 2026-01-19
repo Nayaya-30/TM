@@ -12,7 +12,7 @@ import { Users, Plus, Ruler, Package } from "lucide-react";
 import { useState } from "react";
 import { format } from "date-fns";
 
-export default function DependantsPage() {
+export default function CustomerDashboardPage() {
   const dependants = useQuery(api.dependants.queries.listMine);
   const createDependant = useMutation(api.dependants.mutations.create);
   const customer = useQuery(api.customers.queries.getCurrentCustomer);
@@ -28,12 +28,15 @@ export default function DependantsPage() {
 
   if (dependants === undefined || customer === undefined) {
     return (
-      <div className="space-y-6">
-        <Skeleton className="h-8 w-64" />
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <Skeleton className="h-48" />
-          <Skeleton className="h-48" />
-          <Skeleton className="h-48" />
+      <div className="space-y-8 p-4">
+        <div className="flex flex-col gap-2">
+           <Skeleton className="h-10 w-64 rounded-xl" />
+           <Skeleton className="h-5 w-96 rounded-xl" />
+        </div>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <Skeleton className="h-48 rounded-3xl" />
+          <Skeleton className="h-48 rounded-3xl" />
+          <Skeleton className="h-48 rounded-3xl" />
         </div>
       </div>
     );
@@ -67,37 +70,64 @@ export default function DependantsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Family Members</h1>
-          <p className="text-muted-foreground">Manage measurements for your family</p>
+          <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/60 bg-clip-text text-transparent">
+            Overview
+          </h1>
+          <p className="text-lg text-muted-foreground mt-2">
+            Welcome back, {customer.firstName}
+          </p>
         </div>
-        <Button onClick={() => setIsModalOpen(true)}>
+        <Button onClick={() => setIsModalOpen(true)} className="rounded-full shadow-lg hover:shadow-xl transition-all">
           <Plus className="h-4 w-4 mr-2" />
-          Add Member
+          Add Family Member
         </Button>
       </div>
 
-      {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
+      {/* Stats Bento Grid */}
+      <div className="grid gap-6 md:grid-cols-3">
+        <Card className="group relative overflow-hidden rounded-3xl border-border/50 bg-card/50 backdrop-blur-sm hover:shadow-lg transition-all duration-300">
+           <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold">{dependants.length}</div>
-            <p className="text-sm text-muted-foreground">Total Members</p>
+            <div className="flex items-center justify-between mb-4">
+               <div className="h-10 w-10 rounded-2xl bg-purple-500/10 flex items-center justify-center">
+                  <Users className="h-5 w-5 text-purple-500" />
+               </div>
+               <Badge variant="secondary" className="rounded-full">Active</Badge>
+            </div>
+            <div className="text-4xl font-bold mb-1">{dependants.length}</div>
+            <p className="text-sm text-muted-foreground">Family Members</p>
           </CardContent>
         </Card>
-        <Card>
+        
+        <Card className="group relative overflow-hidden rounded-3xl border-border/50 bg-card/50 backdrop-blur-sm hover:shadow-lg transition-all duration-300">
+           <div className="absolute inset-0 bg-gradient-to-br from-pink-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold">
+             <div className="flex items-center justify-between mb-4">
+               <div className="h-10 w-10 rounded-2xl bg-pink-500/10 flex items-center justify-center">
+                  <Ruler className="h-5 w-5 text-pink-500" />
+               </div>
+               <Badge variant="secondary" className="rounded-full">Total</Badge>
+            </div>
+            <div className="text-4xl font-bold mb-1">
               {dependants.reduce((sum, d) => sum + d.measurementCount, 0)}
             </div>
-            <p className="text-sm text-muted-foreground">Total Measurements</p>
+            <p className="text-sm text-muted-foreground">Saved Measurements</p>
           </CardContent>
         </Card>
-        <Card>
+        
+        <Card className="group relative overflow-hidden rounded-3xl border-border/50 bg-card/50 backdrop-blur-sm hover:shadow-lg transition-all duration-300">
+           <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold">
+             <div className="flex items-center justify-between mb-4">
+               <div className="h-10 w-10 rounded-2xl bg-blue-500/10 flex items-center justify-center">
+                  <Package className="h-5 w-5 text-blue-500" />
+               </div>
+               <Badge variant="secondary" className="rounded-full">Recent</Badge>
+            </div>
+            <div className="text-4xl font-bold mb-1">
               {dependants.reduce((sum, d) => sum + d.orderCount, 0)}
             </div>
             <p className="text-sm text-muted-foreground">Total Orders</p>

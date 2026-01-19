@@ -10,6 +10,7 @@ import { MobileNav } from "@/components/layout/mobile-nav";
 import { FloatingChat } from "@/components/ui/floating-chat";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MessageCircle, Bell } from "lucide-react";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 /* -------------------------------------------------------------------------- */
 /* ORG HEADER                                                                 */
@@ -45,6 +46,7 @@ function OrgHeader({ organizationId }: { organizationId: string | null }) {
         </div>
 
         <div className="flex items-center gap-2">
+          <ThemeToggle />
           <button className="p-2 rounded-lg hover:bg-accent transition-colors">
             <MessageCircle className="h-5 w-5" />
           </button>
@@ -121,10 +123,10 @@ export default function DashboardLayout({
   /* ------------------------------ RENDER ------------------------------- */
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row">
+    <div className="min-h-screen flex flex-col lg:flex-row bg-background">
       <Sidebar userRole={userRole} accentColor={accentColor} />
 
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col lg:pl-72 transition-all duration-300">
         <OrgHeader organizationId={organizationId} />
 
         <main className="flex-1 p-4 lg:p-6 pb-20 lg:pb-6">

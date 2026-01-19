@@ -60,34 +60,45 @@ export function Sidebar({ userRole, accentColor = "#3b82f6" }: SidebarProps) {
   const filteredItems = navItems.filter((item) => !item.roles || item.roles.includes(userRole));
 
   return (
-    <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:border-r lg:border-border lg:bg-card">
-      <div className="flex-1 overflow-y-auto p-4 space-y-1">
-        {filteredItems.map((item) => {
-          const isActive = pathname === item.href;
+    <aside className="hidden lg:flex lg:flex-col lg:w-72 lg:p-4 fixed h-screen z-40">
+      <div className="flex-1 rounded-2xl border border-border bg-card/50 backdrop-blur-xl shadow-lg flex flex-col p-4 overflow-hidden">
+        {/* Logo or Brand placeholder could go here */}
+        <div className="mb-8 px-4 py-2 flex items-center gap-2">
+           <div className="h-8 w-8 rounded-lg bg-primary/20 flex items-center justify-center">
+             <div className="h-4 w-4 rounded-full bg-primary" />
+           </div>
+           <span className="font-bold text-lg tracking-tight">TailorMade</span>
+        </div>
 
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={clsx(
-                "flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-all",
-                "hover:bg-accent",
-                isActive && "bg-accent shadow-sm"
-              )}
-              style={
-                isActive
-                  ? {
-                      backgroundColor: `${accentColor}15`,
-                      color: accentColor,
-                    }
-                  : undefined
-              }
-            >
-              <span className="h-5 w-5">{item.icon}</span>
-              {item.label}
-            </Link>
-          );
-        })}
+        <div className="flex-1 overflow-y-auto space-y-2">
+          {filteredItems.map((item) => {
+            const isActive = pathname === item.href;
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={clsx(
+                  "group flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200",
+                  "hover:bg-accent hover:shadow-sm",
+                  isActive ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <span className={clsx("transition-transform duration-200 group-hover:scale-110", isActive && "scale-110")}>
+                  {item.icon}
+                </span>
+                {item.label}
+              </Link>
+            );
+          })}
+        </div>
+        
+        {/* Footer / User Profile snippet could go here */}
+        <div className="mt-auto pt-4 border-t border-border/50">
+           <div className="text-xs text-muted-foreground px-4 text-center">
+             v1.0.0
+           </div>
+        </div>
       </div>
     </aside>
   );

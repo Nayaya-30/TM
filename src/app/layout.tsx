@@ -1,9 +1,10 @@
 "use client";
 
-import type { Metadata } from 'next';
-import './globals.css';
-import { ConvexClientProvider } from '@/components/providers/convex-client-provider';
-import { SessionProvider } from 'next-auth/react';
+import type { Metadata } from "next";
+import "./globals.css";
+import { ConvexClientProvider } from "@/components/providers/convex-client-provider";
+import { SessionProvider } from "next-auth/react";
+import { ThemeProvider } from "@/components/providers/theme-provider";
 
 
 const metadata: Metadata = {
@@ -17,10 +18,17 @@ export default function RootLayout({
 	children: React.ReactNode;
 }>) {
 	return (
-		<html lang='en'>
+		<html lang="en">
 			<body>
 				<SessionProvider>
-					<ConvexClientProvider>{children}</ConvexClientProvider>
+					<ThemeProvider
+						attribute="class"
+						defaultTheme="system"
+						enableSystem
+						disableTransitionOnChange
+					>
+						<ConvexClientProvider>{children}</ConvexClientProvider>
+					</ThemeProvider>
 				</SessionProvider>
 			</body>
 		</html>
