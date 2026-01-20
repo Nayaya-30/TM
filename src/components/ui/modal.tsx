@@ -38,8 +38,8 @@ export function Modal({ isOpen, onClose, title, children, size = "md" }: ModalPr
       {/* Modal */}
       <div
         className={clsx(
-          "relative z-10 w-full bg-card rounded-xl shadow-2xl animate-slide-up",
-          "max-h-[90vh] overflow-y-auto",
+          "relative z-10 w-full bg-background/80 backdrop-blur-xl border border-border/50 rounded-[2rem] shadow-2xl animate-in zoom-in-95 duration-300",
+          "max-h-[90vh] overflow-y-auto scrollbar-thin scrollbar-thumb-primary/10 scrollbar-track-transparent",
           {
             "max-w-sm": size === "sm",
             "max-w-lg": size === "md",
@@ -51,13 +51,13 @@ export function Modal({ isOpen, onClose, title, children, size = "md" }: ModalPr
       >
         {/* Header */}
         {title && (
-          <div className="flex items-center justify-between border-b border-border p-6">
-            <h2 className="text-xl font-semibold">{title}</h2>
+          <div className="flex items-center justify-between border-b border-border/50 p-6">
+            <h2 className="text-xl font-semibold bg-gradient-to-r from-foreground to-foreground/60 bg-clip-text text-transparent">{title}</h2>
             <button
               onClick={onClose}
-              className="rounded-lg p-2 hover:bg-accent transition-colors"
+              className="rounded-full p-2 hover:bg-muted/50 transition-colors"
             >
-              <X className="h-5 w-5" />
+              <X className="h-5 w-5 text-muted-foreground hover:text-foreground" />
             </button>
           </div>
         )}

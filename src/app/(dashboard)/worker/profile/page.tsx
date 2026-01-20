@@ -3,13 +3,13 @@
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { User, Mail, Star, TrendingUp, Award, LogOut } from "lucide-react";
+import { Mail, TrendingUp, CheckCircle2, Clock, Calendar } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
+import { Button } from "@/components/ui/button";
 
 export default function WorkerProfilePage() {
   const { data: session } = useSession();
@@ -23,22 +23,26 @@ export default function WorkerProfilePage() {
   const currentOrg = undefined as any;
   const router = useRouter();
 
-  if (profile === undefined || tasks === undefined || currentOrg === undefined) {
+  if (profile === undefined || tasks === undefined) {
     return (
-      <div className="space-y-6">
-        <Skeleton className="h-8 w-64" />
-        <Skeleton className="h-64" />
-        <Skeleton className="h-48" />
+      <div className="space-y-8 animate-pulse">
+        <div className="flex flex-col gap-2">
+          <Skeleton className="h-10 w-64 rounded-xl" />
+          <Skeleton className="h-5 w-96 rounded-xl" />
+        </div>
+        <Skeleton className="h-64 w-full rounded-3xl" />
+        <div className="grid gap-6 md:grid-cols-3">
+          <Skeleton className="h-40 rounded-3xl" />
+          <Skeleton className="h-40 rounded-3xl" />
+          <Skeleton className="h-40 rounded-3xl" />
+        </div>
       </div>
     );
   }
 
   const completedTasks = tasks.filter((t) => t.status === "completed");
-  const tasksWithRating = completedTasks.filter((t) => t.rating !== undefined);
-  const avgRating =
-    tasksWithRating.length > 0
-      ? tasksWithRating.reduce((sum, t) => sum + (t.rating ?? 0), 0) / tasksWithRating.length
-      : 0;
+  const pendingTasks = tasks.filter((t) => t.status === "pending");
+  const inProgressTasks = tasks.filter((t) => t.status === "in_progress");
 
   async function handleSignOut() {
     await signOut({ redirect: false });
@@ -46,165 +50,126 @@ export default function WorkerProfilePage() {
   }
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
-      <div>
-        <h1 className="text-3xl font-bold">My Profile</h1>
-        <p className="text-muted-foreground">View your performance and account details</p>
+    <div className="space-y-8 animate-fade-in max-w-5xl mx-auto">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/60 bg-clip-text text-transparent">
+            My Profile
+          </h1>
+          <p className="text-lg text-muted-foreground mt-2">
+            View your performance and account details
+          </p>
+        </div>
+        <Button 
+          variant="outline" 
+          onClick={handleSignOut}
+          className="rounded-full border-destructive/20 text-destructive hover:bg-destructive/10 hover:text-destructive"
+        >
+          Sign Out
+        </Button>
       </div>
 
       {/* Profile Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Personal Information</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-start gap-6">
-            <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-              <span className="text-3xl font-medium text-primary">
-                {profile.user.firstName[0]}
-                {profile.user.lastName[0]}
-              </span>
+      <div className="group relative overflow-hidden rounded-[2.5rem] border border-border/50 bg-card/50 backdrop-blur-sm p-8 md:p-10 transition-all duration-300 hover:shadow-xl">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+        
+        <div className="relative flex flex-col md:flex-row items-center md:items-start gap-8">
+          <div className="h-32 w-32 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center flex-shrink-0 shadow-inner ring-4 ring-background">
+            <span className="text-4xl font-bold text-primary">
+              {profile.user.firstName[0]}
+              {profile.user.lastName[0]}
+            </span>
+          </div>
+
+          <div className="flex-1 text-center md:text-left space-y-4">
+            <div>
+              <h2 className="text-3xl font-bold tracking-tight">
+                {profile.user.firstName} {profile.user.lastName}
+              </h2>
+              <div className="flex items-center justify-center md:justify-start gap-3 mt-3">
+                <Badge variant="secondary" className="rounded-full bg-primary/10 text-primary hover:bg-primary/20 border-primary/20 px-4 py-1">
+                  Worker
+                </Badge>
+                <Badge variant="outline" className="rounded-full px-4 py-1">
+                  Member since {format(new Date(profile.user._creationTime), "MMMM yyyy")}
+                </Badge>
+              </div>
             </div>
 
-            <div className="flex-1 space-y-4">
-              <div>
-                <p className="text-2xl font-bold">
-                  {profile.user.firstName} {profile.user.lastName}
-                </p>
-                <Badge variant="default" className="mt-2">Worker</Badge>
+            <div className="grid gap-4 md:grid-cols-2 pt-4">
+              <div className="flex items-center gap-3 p-4 rounded-2xl bg-muted/50 border border-border/50">
+                <div className="h-10 w-10 rounded-full bg-background flex items-center justify-center shadow-sm">
+                  <Mail className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <div className="text-left">
+                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Email</p>
+                  <p className="font-medium truncate">{profile.user.email}</p>
+                </div>
               </div>
-
-              <div className="flex items-center gap-3 text-sm">
-                <Mail className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <p className="text-muted-foreground">Email</p>
-                  <p className="font-medium">{profile.user.email}</p>
+              
+              <div className="flex items-center gap-3 p-4 rounded-2xl bg-muted/50 border border-border/50">
+                <div className="h-10 w-10 rounded-full bg-background flex items-center justify-center shadow-sm">
+                  <Calendar className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <div className="text-left">
+                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Joined</p>
+                  <p className="font-medium">{format(new Date(profile.user._creationTime), "PP")}</p>
                 </div>
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Performance Stats */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Tasks</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{tasks.length}</div>
-            <p className="text-xs text-muted-foreground">
-              {completedTasks.length} completed
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Average Rating</CardTitle>
-            <Star className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {avgRating > 0 ? avgRating.toFixed(1) : "—"}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {tasksWithRating.length} rated task{tasksWithRating.length !== 1 ? "s" : ""}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
-            <Award className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {tasks.length > 0 ? Math.round((completedTasks.length / tasks.length) * 100) : 0}%
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {completedTasks.length} of {tasks.length} tasks
-            </p>
-          </CardContent>
-        </Card>
+        </div>
       </div>
 
-      {/* Recent Performance */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Ratings</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {tasksWithRating.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Star className="h-12 w-12 mx-auto mb-3 opacity-50" />
-              <p>No rated tasks yet</p>
+      {/* Performance Stats */}
+      <div>
+        <h3 className="text-xl font-bold mb-6 px-1">Performance Overview</h3>
+        <div className="grid gap-6 md:grid-cols-3">
+          <div className="group relative overflow-hidden rounded-3xl border border-border/50 bg-card/50 backdrop-blur-sm p-6 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="relative flex items-center justify-between mb-4">
+              <div className="h-12 w-12 rounded-2xl bg-blue-500/10 flex items-center justify-center">
+                <TrendingUp className="h-6 w-6 text-blue-500" />
+              </div>
+              <span className="text-sm font-medium text-muted-foreground bg-background/50 px-3 py-1 rounded-full backdrop-blur-sm">Total</span>
             </div>
-          ) : (
-            <div className="space-y-3">
-              {tasksWithRating.slice(0, 5).map((task) => (
-                <div
-                  key={task._id}
-                  className="flex items-center justify-between p-3 rounded-lg border border-border"
-                >
-                  <div className="flex-1">
-                    <p className="font-medium">{task.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {format(task.completedAt!, "MMM d, yyyy")}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-1">
-                      <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
-                      <span className="font-medium">{task.rating?.toFixed(1)}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Organization Info */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Working For</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-start gap-4">
-            {currentOrg.logo && (
-              <img
-                src={currentOrg.logo}
-                alt={currentOrg.name}
-                className="h-12 w-12 rounded-lg object-cover"
-              />
-            )}
-            <div className="flex-1">
-              <h3 className="font-semibold">{currentOrg.name}</h3>
-              <p className="text-sm text-muted-foreground mt-1">
-                Member since {format(profile.organizations[0]?.joinedAt || Date.now(), "MMMM yyyy")}
-              </p>
+            <div className="relative">
+              <div className="text-4xl font-bold mb-1">{tasks.length}</div>
+              <p className="text-sm text-muted-foreground">Assigned Tasks</p>
             </div>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Account Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Account Actions</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <Button variant="outline" className="w-full justify-start text-destructive hover:text-destructive" onClick={handleSignOut}>
-            <LogOut className="mr-2 h-4 w-4" />
-            Sign Out
-          </Button>
-        </CardContent>
-      </Card>
+          <div className="group relative overflow-hidden rounded-3xl border border-border/50 bg-card/50 backdrop-blur-sm p-6 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+            <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="relative flex items-center justify-between mb-4">
+              <div className="h-12 w-12 rounded-2xl bg-green-500/10 flex items-center justify-center">
+                <CheckCircle2 className="h-6 w-6 text-green-500" />
+              </div>
+              <span className="text-sm font-medium text-green-600 bg-green-500/10 px-3 py-1 rounded-full">
+                {tasks.length > 0 ? Math.round((completedTasks.length / tasks.length) * 100) : 0}%
+              </span>
+            </div>
+            <div className="relative">
+              <div className="text-4xl font-bold mb-1">{completedTasks.length}</div>
+              <p className="text-sm text-muted-foreground">Completed Tasks</p>
+            </div>
+          </div>
+
+          <div className="group relative overflow-hidden rounded-3xl border border-border/50 bg-card/50 backdrop-blur-sm p-6 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+            <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="relative flex items-center justify-between mb-4">
+              <div className="h-12 w-12 rounded-2xl bg-amber-500/10 flex items-center justify-center">
+                <Clock className="h-6 w-6 text-amber-500" />
+              </div>
+              <span className="text-sm font-medium text-amber-600 bg-amber-500/10 px-3 py-1 rounded-full">Active</span>
+            </div>
+            <div className="relative">
+              <div className="text-4xl font-bold mb-1">{inProgressTasks.length + pendingTasks.length}</div>
+              <p className="text-sm text-muted-foreground">In Progress & Pending</p>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

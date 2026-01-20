@@ -69,22 +69,6 @@ const handler = NextAuth({
       return session;
     },
   },
-  events: {
-    async signIn({ user }) {
-      try {
-        if (user.email) {
-          await convex.mutation(api.users.mutations.signUpUser, {
-            email: user.email,
-            firstName: user.name?.split(" ")[0] || "User",
-            lastName: user.name?.split(" ").slice(1).join(" ") || "",
-            avatar: user.image ?? undefined,
-          });
-        }
-      } catch (error) {
-        console.error("Error syncing user to Convex:", error);
-      }
-    },
-  },
   session: { strategy: "jwt" },
   secret: process.env.NEXTAUTH_SECRET,
 });

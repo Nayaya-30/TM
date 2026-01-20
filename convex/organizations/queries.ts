@@ -3,6 +3,7 @@ import { query } from "../_generated/server";
 import { ConvexError } from "convex/values";
 import { getCurrentUserContext } from "../helpers/auth";
 import { Id } from "../_generated/dataModel";
+import { requireUser } from "../users/helpers";
 
 // ============================================================================
 // GET ORGANIZATION BY ID
@@ -103,7 +104,8 @@ export const getUserOrganizations = query({
       return [];
     }
 
-    const userId = identity.subject as Id<"users">;
+    const user = await requireUser(ctx);
+    const userId = user._id;
 
     const memberships = await ctx.db
       .query("orgMemberships")

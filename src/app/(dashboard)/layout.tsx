@@ -123,10 +123,14 @@ export default function DashboardLayout({
   /* ------------------------------ RENDER ------------------------------- */
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row bg-background">
+    <div className="min-h-screen flex flex-col lg:flex-row bg-background relative overflow-hidden">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/5 via-background to-background pointer-events-none" />
+      <div className="absolute inset-0 h-full w-full bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
+
       <Sidebar userRole={userRole} accentColor={accentColor} />
 
-      <div className="flex-1 flex flex-col lg:pl-72 transition-all duration-300">
+      <div className="flex-1 flex flex-col lg:pl-72 transition-all duration-300 relative z-10">
         <OrgHeader organizationId={organizationId} />
 
         <main className="flex-1 p-4 lg:p-6 pb-20 lg:pb-6">

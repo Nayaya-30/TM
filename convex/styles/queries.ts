@@ -3,6 +3,7 @@ import { query } from "../_generated/server";
 import { ConvexError } from "convex/values";
 import { normalizePaginationLimit } from "../helpers/utils";
 import { Id } from "../_generated/dataModel";
+import { requireUser } from "../users/helpers";
 
 // ============================================================================
 // LIST STYLES (PUBLIC - FOR SHOWCASE)
@@ -87,7 +88,8 @@ export const listInternal = query({
       throw new ConvexError("Unauthenticated");
     }
 
-    const userId = identity.subject as Id<"users">;
+    const user = await requireUser(ctx);
+    const userId = user._id;
 
     // Get user's organization
     const membership = await ctx.db

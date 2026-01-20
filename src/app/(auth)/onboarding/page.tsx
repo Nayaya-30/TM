@@ -15,6 +15,7 @@ export default function OnboardingPage() {
 
   const [step, setStep] = useState(1);
   const [isCreating, setIsCreating] = useState(false);
+  const [error, setError] = useState("");
   const [formData, setFormData] = useState({
     name: "",
     address: "",
@@ -39,6 +40,7 @@ export default function OnboardingPage() {
     setIsCreating(true);
 
     try {
+      setError("");
       await createOrganization({
         name: formData.name,
         accentColor: formData.accentColor,
@@ -53,6 +55,7 @@ export default function OnboardingPage() {
       router.push("/admin/dashboard");
     } catch (error) {
       console.error("Failed to create organization:", error);
+      setError(error instanceof Error ? error.message : "Failed to create organization. Please try again.");
     } finally {
       setIsCreating(false);
     }
@@ -66,6 +69,13 @@ export default function OnboardingPage() {
           <CardDescription>Complete these steps to get started</CardDescription>
         </CardHeader>
         <CardContent>
+          {/* Error Display */}
+          {error && (
+            <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md mb-6 border border-destructive/20">
+              {error}
+            </div>
+          )}
+
           {/* Progress Steps */}
           <div className="flex items-center justify-between mb-8">
             {steps.map((s, index) => (
@@ -178,7 +188,7 @@ export default function OnboardingPage() {
               )}
               <Button
                 className="ml-auto"
-                onClick={handleSubmit}
+                onClick={() => handleSubmit()}
                 disabled={
                   (step === 1 && !formData.name) ||
                   (step === 2 && !formData.address) ||

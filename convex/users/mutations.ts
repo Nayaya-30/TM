@@ -174,31 +174,33 @@ export const signUpUser = mutation({
 		),
 	},
 	handler: async (ctx, args) => {
+		const email = args.email.toLowerCase();
+		
 		const existing = await ctx.db
 			.query("users")
-			.withIndex("by_email", (q) => q.eq("email", args.email))
+			.withIndex("by_email", (q) => q.eq("email", email))
 			.first();
 
 		if (existing) {
 			throw new Error("Email already exists");
 		}
 
-		const salt = bcrypt.genSaltSync(10);
-		const hash = bcrypt.hashSync(args.password, salt);
+		// Use auto-generated salt with 10 rounds
+		const hash = bcrypt.hashSync(args.password, 10);
 
 		const now = Date.now();
 
 		const userId = await ctx.db.insert("users", {
-			email: args.email,
+			email: email,
 			passwordHash: hash,
-			passwordSalt: salt,
-			firstName: args.firstName || args.email.split("@")[0],
+			passwordSalt: "deprecated", // We store the salt in the hash itself with bcrypt
+			firstName: args.firstName || email.split("@")[0],
 			lastName: args.lastName || "",
 			emailVerified: false,
 			phone: undefined,
 			phoneVerified: false,
 			avatar: undefined,
-			authSubject: null,
+			authSubject: crypto.randomUUID(),
 			role: args.role,
 			createdAt: now,
 			updatedAt: now,
@@ -344,9 +346,10 @@ export const verifyCredentials = mutation({
 		password: v.string(),
 	},
 	handler: async (ctx, { email, password }) => {
+		const normalizedEmail = email.toLowerCase();
 		const user = await ctx.db
 			.query("users")
-			.withIndex("by_email", q => q.eq("email", email))
+			.withIndex("by_email", q => q.eq("email", normalizedEmail))
 			.first();
 
 		if (!user || !user.passwordHash) return null;
@@ -356,7 +359,7 @@ export const verifyCredentials = mutation({
 		if (!isValid) return null;
 
 		return {
-			id: user._id,
+			id: user.authSubject ?? user._id,
 			email: user.email,
 			name: `${user.firstName} ${user.lastName}`,
 			image: user.avatar ?? null,

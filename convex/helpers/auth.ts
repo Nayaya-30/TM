@@ -1,6 +1,7 @@
 import { QueryCtx, MutationCtx } from "../_generated/server";
 import { Id } from "../_generated/dataModel";
 import { ConvexError } from "convex/values";
+import { requireUser } from "../users/helpers";
 
 export type UserRole = "admin" | "manager" | "worker" | "customer";
 
@@ -23,7 +24,8 @@ export async function getCurrentUserContext(
     throw new ConvexError("Unauthenticated");
   }
 
-  const userId = identity.subject as Id<"users">;
+  const user = await requireUser(ctx);
+  const userId = user._id;
 
   // Get user's current organization from session or default
   // In practice, this would come from a session store or user preference
