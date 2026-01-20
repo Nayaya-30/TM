@@ -20,15 +20,28 @@ export const create = mutation({
 			latitude: v.float64(),
 			longitude: v.float64(),
 		}),
+		userId: v.optional(v.string()),
 	},
 	handler: async (ctx, args) => {
-		const identity = await ctx.auth.getUserIdentity();
+		let user;
 
-		if (!identity) {
-			throw new ConvexError("Authentication required");
+		if (args.userId) {
+			// Fallback for NextAuth when ctx.auth is not fully configured
+			user = await ctx.db
+				.query("users")
+				.filter((q) => q.eq(q.field("authSubject"), args.userId))
+				.unique();
+			
+			if (!user) {
+				throw new ConvexError("User not found");
+			}
+		} else {
+			const identity = await ctx.auth.getUserIdentity();
+			if (!identity) {
+				throw new ConvexError("Authentication required");
+			}
+			user = await requireUser(ctx);
 		}
-
-		const user = await requireUser(ctx);
 
 		const userId = user._id; // ✅ typed Id<"users">
 
