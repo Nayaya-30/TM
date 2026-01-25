@@ -13,7 +13,7 @@ export default function SignUpPage() {
 	const router = useRouter();
 	const { signIn } = useAuthActions(); // Use this instead of next-auth
 	const searchParams = useSearchParams();
-	
+
 	const [formData, setFormData] = useState({
 		firstName: "",
 		lastName: "",
@@ -27,7 +27,7 @@ export default function SignUpPage() {
 
 	async function handleSubmit(e: React.FormEvent) {
 		e.preventDefault();
-		
+
 		if (formData.password !== formData.confirmPassword) {
 			setError("Passwords do not match");
 			return;
@@ -40,12 +40,11 @@ export default function SignUpPage() {
 			// 2. Convex Auth Sign Up
 			await signIn("password", {
 				email: formData.email,
-				password: formData.password,
-				// Pass extra fields to the user document
-				firstName: formData.firstName,
-				lastName: formData.lastName,
-				role: accountType,
-				flow: "signUp",
+        password: formData.password,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        role: accountType,
+        flow: "signUp",
 			});
 
 			// 3. Success! Redirect based on account type
