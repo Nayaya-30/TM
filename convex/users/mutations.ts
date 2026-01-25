@@ -175,32 +175,33 @@ export const signUpUser = mutation({
 	},
 	handler: async (ctx, args) => {
 		const email = args.email.toLowerCase();
-		
+
 		const existing = await ctx.db
 			.query("users")
 			.withIndex("by_email", (q) => q.eq("email", email))
 			.first();
 
 		if (existing) {
-			throw new Error("Email already exists");
+			throw new ConvexError("Email already exists");
 		}
 
-		// Use auto-generated salt with 10 rounds
 		const hash = bcrypt.hashSync(args.password, 10);
 
 		const now = Date.now();
 
+		// Do NOT set authSubject here — it will be set later on first authenticated action
+		// (or leave it undefined/null for credentials users)
 		const userId = await ctx.db.insert("users", {
-			email: email,
+			email,
 			passwordHash: hash,
-			passwordSalt: "deprecated", // We store the salt in the hash itself with bcrypt
+			passwordSalt: "deprecated",
 			firstName: args.firstName || email.split("@")[0],
 			lastName: args.lastName || "",
 			emailVerified: false,
 			phone: undefined,
 			phoneVerified: false,
 			avatar: undefined,
-			authSubject: crypto.randomUUID(),
+			authSubject: null,           // ← remove or omit this field
 			role: args.role,
 			createdAt: now,
 			updatedAt: now,
@@ -359,11 +360,74 @@ export const verifyCredentials = mutation({
 		if (!isValid) return null;
 
 		return {
-			id: user.authSubject ?? user._id,
+			id: user._id,                        // ← use Convex _id directly
 			email: user.email,
-			name: `${user.firstName} ${user.lastName}`,
+			name: `\( {user.firstName} \){user.lastName}`,
 			image: user.avatar ?? null,
 			role: user.role ?? "customer",
 		};
+	},
+});
+
+export const linkAuthIdentity = mutation({
+	handler: async (ctx) => {
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) throw new ConvexError("Not authenticated");
+
+		const user = await ctx.db
+			.query("users")
+			.withIndex("by_email", (q) => q.eq("email", identity.email!))
+			.unique();
+
+		if (!user) throw new ConvexError("User not found");
+
+		// Link the database user to the NextAuth 'sub'
+		if (user.authSubject !== identity.subject) {
+			await ctx.db.patch(user._id, {
+				authSubject: identity.subject,
+				updatedAt: Date.now(),
+			});
+		}
+
+		return user._id;
+	},
+});
+
+export const linkAuthToUser = mutation({
+	handler: async (ctx) => {
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) throw new ConvexError("Unauthenticated");
+
+		// Try to find user already linked
+		let user = await ctx.db
+			.query("users")
+			.withIndex("by_authSubject", q =>
+				q.eq("authSubject", identity.subject)
+			)
+			.unique();
+
+		if (user) return user;
+
+		// Fallback: link by email
+		if (!identity.email) {
+			throw new ConvexError("No email in identity");
+		}
+
+		user = await ctx.db
+			.query("users")
+			.withIndex("by_email", q =>
+				q.eq("email", identity.email!)
+			)
+			.unique();
+
+		if (!user) {
+			throw new ConvexError("User not found for auth linking");
+		}
+
+		await ctx.db.patch(user._id, {
+			authSubject: identity.subject,
+		});
+
+		return { linked: true };
 	},
 });

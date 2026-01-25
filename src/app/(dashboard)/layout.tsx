@@ -17,46 +17,46 @@ import { ThemeToggle } from "@/components/theme-toggle";
 /* -------------------------------------------------------------------------- */
 
 function OrgHeader({ organizationId }: { organizationId: string | null }) {
-  const org = useQuery(
-    api.organizations.queries.get,
-    organizationId ? { organizationId } : "skip"
-  );
+	const org = useQuery(
+		api.organizations.queries.get,
+		organizationId ? { organizationId } : "skip"
+	);
 
-  if (!org) return null;
+	if (!org) return null;
 
-  return (
-    <header className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur-sm">
-      <div className="flex items-center justify-between px-4 lg:px-6 h-16">
-        <div className="flex items-center gap-3">
-          {org.logo && (
-            <img
-              src={org.logo}
-              alt={org.name}
-              className="h-8 w-8 rounded-lg object-cover"
-            />
-          )}
-          <div>
-            <h1 className="font-semibold">{org.name}</h1>
-            {org.verified && (
-              <span className="text-xs text-muted-foreground">
-                ✓ Verified
-              </span>
-            )}
-          </div>
-        </div>
+	return (
+		<header className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur-sm">
+			<div className="flex items-center justify-between px-4 lg:px-6 h-16">
+				<div className="flex items-center gap-3">
+					{org.logo && (
+						<img
+							src={org.logo}
+							alt={org.name}
+							className="h-8 w-8 rounded-lg object-cover"
+						/>
+					)}
+					<div>
+						<h1 className="font-semibold">{org.name}</h1>
+						{org.verified && (
+							<span className="text-xs text-muted-foreground">
+								✓ Verified
+							</span>
+						)}
+					</div>
+				</div>
 
-        <div className="flex items-center gap-2">
-          <ThemeToggle />
-          <button className="p-2 rounded-lg hover:bg-accent transition-colors">
-            <MessageCircle className="h-5 w-5" />
-          </button>
-          <button className="p-2 rounded-lg hover:bg-accent transition-colors">
-            <Bell className="h-5 w-5" />
-          </button>
-        </div>
-      </div>
-    </header>
-  );
+				<div className="flex items-center gap-2">
+					<ThemeToggle />
+					<button className="p-2 rounded-lg hover:bg-accent transition-colors">
+						<MessageCircle className="h-5 w-5" />
+					</button>
+					<button className="p-2 rounded-lg hover:bg-accent transition-colors">
+						<Bell className="h-5 w-5" />
+					</button>
+				</div>
+			</div>
+		</header>
+	);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -64,85 +64,86 @@ function OrgHeader({ organizationId }: { organizationId: string | null }) {
 /* -------------------------------------------------------------------------- */
 
 export default function DashboardLayout({
-  children,
+	children,
 }: {
-  children: React.ReactNode;
+	children: React.ReactNode;
 }) {
-  const router = useRouter();
-  const { data: session, status } = useSession();
+	const router = useRouter();
+	const { data: session, status } = useSession();
 
-  // 🚨 AUTH GATE — do not touch Convex yet
-  if (status === "loading") {
-    return <LoadingShell />;
-  }
+	// 🚨 AUTH GATE — do not touch Convex yet
+	if (status === "loading") {
+		return <LoadingShell />;
+	}
 
-  if (status === "unauthenticated" || !session?.user?.id) {
-    router.push("/sign-in");
-    return null;
-  }
+	if (status === "unauthenticated" || !session?.user?.id) {
+		router.push("/sign-in");
+		return null;
+	}
 
-  const userId = session.user.id as string;
+	const userId = session.user.id as string;
 
-  /* --------------------------- CONVEX QUERIES --------------------------- */
+	/* --------------------------- CONVEX QUERIES --------------------------- */
 
-  const currentUser = useQuery(
-    api.users.queries.getCurrentUser,
-    { userId }
-  );
+	const currentUser = useQuery(
+		api.users.queries.getCurrentUser,
+		{ userId: userId ?? "" },
+		{ enabled: !!userId }
+	);
 
-  const profile = useQuery(
-    api.users.queries.getProfile,
-    { userId }
-  );
+	const profile = useQuery(
+		api.users.queries.getProfile,
+		{ userId: userId ?? "" },
+		{ enabled: !!userId }
+	);
 
-  // Still loading Convex data
-  if (currentUser === undefined || profile === undefined) {
-    return <LoadingShell />;
-  }
+	// Still loading Convex data
+	if (status === "loading" || currentUser === undefined || profile === undefined) {
+  return <LoadingShell />;
+}
 
-  // User deleted or invalid session
-  if (!currentUser || !profile) {
-    router.push("/sign-in");
-    return null;
-  }
+if (!session || !userId || !currentUser || !profile) {
+  router.push("/sign-in");
+  return null;
+}
 
-  /* --------------------------- DERIVED STATE ---------------------------- */
+	/* --------------------------- DERIVED STATE ---------------------------- */
 
-  const primaryOrg = profile.organizations[0] ?? null;
+	const primaryOrg = profile.organizations[0] ?? null;
 
-  const userRole =
-    (primaryOrg?.role as
-      | "admin"
-      | "manager"
-      | "worker"
-      | "customer") ?? "customer";
+	const userRole =
+		(primaryOrg?.role as
+			| "admin"
+			| "manager"
+			| "worker"
+			| "customer") ?? "customer";
 
-  const organizationId = primaryOrg?.organizationId ?? null;
-  const accentColor = primaryOrg?.accentColor ?? "blue";
+	const organizationId = primaryOrg?.organizationId ?? null;
+	const accentColor = primaryOrg?.accentColor ?? "blue";
 
-  /* ------------------------------ RENDER ------------------------------- */
+	/* ------------------------------ RENDER ------------------------------- */
 
-  return (
-    <div className="min-h-screen flex flex-col lg:flex-row bg-background relative overflow-hidden">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/5 via-background to-background pointer-events-none" />
-      <div className="absolute inset-0 h-full w-full bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
+	return (
+		<div className="min-h-screen flex flex-col lg:flex-row bg-background relative overflow-hidden">
+			{/* Background Pattern */}
+			<div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/5 via-background to-background pointer-events-none" />
+			<div className="absolute inset-0 h-full w-full bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
 
-      <Sidebar userRole={userRole} accentColor={accentColor} />
+			<Sidebar userRole={userRole} accentColor={accentColor} />
 
-      <div className="flex-1 flex flex-col lg:pl-72 transition-all duration-300 relative z-10">
-        <OrgHeader organizationId={organizationId} />
+			<div className="flex-1 flex flex-col lg:pl-72 transition-all duration-300 relative z-10">
+				<OrgHeader organizationId={organizationId} />
 
-        <main className="flex-1 p-4 lg:p-6 pb-20 lg:pb-6">
-          {children}
-        </main>
-      </div>
+				<main className="flex-1 p-4 lg:p-6 pb-20 lg:pb-6">
+					{children}
+				</main>
+			</div>
 
-      <MobileNav userRole={userRole} accentColor={accentColor} />
+			<MobileNav userRole={userRole} accentColor={accentColor} />
 
-      <FloatingChat />
-    </div>
-  );
+			<FloatingChat />
+		</div>
+	);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -150,22 +151,22 @@ export default function DashboardLayout({
 /* -------------------------------------------------------------------------- */
 
 function LoadingShell() {
-  return (
-    <div className="min-h-screen flex">
-      <div className="hidden lg:block w-64 border-r border-border bg-card p-4 space-y-4">
-        <Skeleton className="h-12 w-full" />
-        <Skeleton className="h-12 w-full" />
-        <Skeleton className="h-12 w-full" />
-        <Skeleton className="h-12 w-full" />
-      </div>
-      <div className="flex-1 p-6">
-        <Skeleton className="h-8 w-48 mb-6" />
-        <div className="grid gap-4">
-          <Skeleton className="h-32 w-full" />
-          <Skeleton className="h-32 w-full" />
-          <Skeleton className="h-32 w-full" />
-        </div>
-      </div>
-    </div>
-  );
+	return (
+		<div className="min-h-screen flex">
+			<div className="hidden lg:block w-64 border-r border-border bg-card p-4 space-y-4">
+				<Skeleton className="h-12 w-full" />
+				<Skeleton className="h-12 w-full" />
+				<Skeleton className="h-12 w-full" />
+				<Skeleton className="h-12 w-full" />
+			</div>
+			<div className="flex-1 p-6">
+				<Skeleton className="h-8 w-48 mb-6" />
+				<div className="grid gap-4">
+					<Skeleton className="h-32 w-full" />
+					<Skeleton className="h-32 w-full" />
+					<Skeleton className="h-32 w-full" />
+				</div>
+			</div>
+		</div>
+	);
 }

@@ -1,43 +1,15 @@
 "use client";
 
-import {
-  ConvexProviderWithAuth,
-  ConvexReactClient,
-} from "convex/react";
-import { ReactNode, useMemo } from "react";
-import { useSession } from "next-auth/react";
+import { ConvexAuthProvider } from "@convex-dev/auth/react";
+import { ConvexReactClient } from "convex/react";
+import { ReactNode } from "react";
 
-const convex = new ConvexReactClient(
-  process.env.NEXT_PUBLIC_CONVEX_URL!
-);
+const convex = new ConvexReactClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
-function ConvexProviderInner({ children }: { children: ReactNode }) {
-  const { data: session, status } = useSession();
-
-  const useAuth = useMemo(() => {
-    return () => ({
-      isLoading: status === "loading",
-      isAuthenticated: !!session?.user?.id,
-      fetchAccessToken: async () => {
-        if (!session?.user?.id) return null;
-
-        // This token becomes identity.subject in Convex
-        return session.user.id;
-      },
-    });
-  }, [session?.user?.id, status]);
-
+export function ConvexClientProvider({ children }: { children: ReactNode }) {
   return (
-    <ConvexProviderWithAuth client={convex} useAuth={useAuth}>
+    <ConvexAuthProvider client={convex}>
       {children}
-    </ConvexProviderWithAuth>
+    </ConvexAuthProvider>
   );
-}
-
-export function ConvexClientProvider({
-  children,
-}: {
-  children: ReactNode;
-}) {
-  return <ConvexProviderInner>{children}</ConvexProviderInner>;
 }
