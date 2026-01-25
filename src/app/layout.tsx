@@ -1,8 +1,7 @@
-"use client"
-
-import "./globals.css";
+// src/app/layout.tsx
+import { AuthWrapper } from "./auth-wrapper"; // Import your local wrapper
 import { ConvexClientProvider } from "@/components/providers/convex-client-provider";
-import { ThemeProvider } from "@/components/providers/theme-provider";
+import "./globals.css";
 
 export default function RootLayout({
 	children,
@@ -10,19 +9,14 @@ export default function RootLayout({
 	children: React.ReactNode;
 }) {
 	return (
-		<html lang="en" suppressHydrationWarning>
-			<body>
-				<ThemeProvider
-					attribute="class"
-					defaultTheme="system"
-					enableSystem
-					disableTransitionOnChange
-				>
+		<AuthWrapper>
+			<html lang="en">
+				<body>
 					<ConvexClientProvider>
 						{children}
 					</ConvexClientProvider>
-				</ThemeProvider>
-			</body>
-		</html>
+				</body>
+			</html>
+		</AuthWrapper>
 	);
 }

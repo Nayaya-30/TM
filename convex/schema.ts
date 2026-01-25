@@ -7,7 +7,7 @@ import { authTables } from "@convex-dev/auth/server";
 // ============================================================================
 
 export default defineSchema({
-	
+
 	...authTables,
 	// ==========================================================================
 	// USERS (Next-Auth)
@@ -19,7 +19,7 @@ export default defineSchema({
 		passwordSalt: v.optional(v.string()),
 		phone: v.optional(v.string()),
 		phoneVerified: v.boolean(),
-		authSubject: v.union(v.string(), v.null()),
+		authSubject: v.optional(v.string()),
 		firstName: v.string(),
 		lastName: v.string(),
 		avatar: v.optional(v.string()),

@@ -196,7 +196,6 @@ export const signUpUser = mutation({
 			phone: undefined,
 			phoneVerified: false,
 			avatar: undefined,
-			authSubject: null,           // ← remove or omit this field
 			role: args.role,
 			createdAt: now,
 			updatedAt: now,

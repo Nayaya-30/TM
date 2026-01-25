@@ -2,17 +2,18 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
-import { useMutation } from "convex/react";
+// 1. Swap next-auth for useConvexAuth
+import { useConvexAuth, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Loader2 } from "lucide-react";
 
 export default function OnboardingPage() {
 	const router = useRouter();
-	const { data: session, status } = useSession();
+	// 2. Use Convex Auth state
+	const { isAuthenticated, isLoading: isAuthLoading } = useConvexAuth();
 	
 	const createOrganization = useMutation(api.organizations.mutations.create);
 
@@ -34,14 +35,11 @@ export default function OnboardingPage() {
 		{ number: 3, title: "Branding", description: "Customize your appearance" },
 	];
 
-	console.log("[Onboarding] Mounted", {
-		authStatus: status,
-		sessionUser: session?.user ? {
-			id: session.user.id,
-			email: session.user.email,
-			role: session.user.role,
-		} : null,
-	});
+	// 3. Handle redirect if not logged in
+	if (!isAuthLoading && !isAuthenticated) {
+		router.push("/sign-in");
+		return null;
+	}
 
 	async function handleSubmit() {
 		if (step < 3) {
@@ -53,13 +51,14 @@ export default function OnboardingPage() {
 
 		try {
 			setError("");
+			// The mutation will use the session cookie to identify who is creating the org
 			await createOrganization({
 				name: formData.name,
 				accentColor: formData.accentColor,
 				theme: formData.theme,
 				location: {
 					address: formData.address,
-					latitude: formData.latitude || 6.5244, // Default to Lagos
+					latitude: formData.latitude || 6.5244,
 					longitude: formData.longitude || 3.3792,
 				},
 			});
@@ -73,6 +72,14 @@ export default function OnboardingPage() {
 		}
 	}
 
+	if (isAuthLoading) {
+		return (
+			<div className="min-h-screen flex items-center justify-center">
+				<Loader2 className="h-8 w-8 animate-spin text-primary" />
+			</div>
+		);
+	}
+
 	return (
 		<div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted p-4">
 			<Card className="w-full max-w-2xl">
@@ -81,7 +88,6 @@ export default function OnboardingPage() {
 					<CardDescription>Complete these steps to get started</CardDescription>
 				</CardHeader>
 				<CardContent>
-					{/* Error Display */}
 					{error && (
 						<div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md mb-6 border border-destructive/20">
 							{error}
@@ -144,9 +150,6 @@ export default function OnboardingPage() {
 										required
 									/>
 								</div>
-								<p className="text-sm text-muted-foreground">
-									This will be visible to customers browsing tailors
-								</p>
 							</div>
 						)}
 
@@ -159,7 +162,7 @@ export default function OnboardingPage() {
 											type="color"
 											value={formData.accentColor}
 											onChange={(e) => setFormData({ ...formData, accentColor: e.target.value })}
-											className="w-20 h-12 cursor-pointer"
+											className="w-20 h-12 cursor-pointer p-1"
 										/>
 										<Input
 											value={formData.accentColor}
@@ -167,9 +170,6 @@ export default function OnboardingPage() {
 											placeholder="#3b82f6"
 										/>
 									</div>
-									<p className="text-sm text-muted-foreground">
-										This color will be used for buttons, highlights, and branding
-									</p>
 								</div>
 
 								<div className="space-y-2">
@@ -179,7 +179,7 @@ export default function OnboardingPage() {
 										onChange={(e) =>
 											setFormData({ ...formData, theme: e.target.value as any })
 										}
-										className="flex h-11 w-full rounded-lg border border-input bg-background px-4 py-2 text-base"
+										className="flex h-11 w-full rounded-lg border border-input bg-background px-4 py-2 text-base focus:ring-2 focus:ring-primary outline-none"
 									>
 										<option value="system">System (Auto)</option>
 										<option value="light">Light</option>
@@ -189,7 +189,6 @@ export default function OnboardingPage() {
 							</div>
 						)}
 
-						{/* Navigation */}
 						<div className="flex gap-2 justify-between pt-4">
 							{step > 1 && (
 								<Button variant="outline" onClick={() => setStep(step - 1)}>
@@ -204,9 +203,17 @@ export default function OnboardingPage() {
 									(step === 2 && !formData.address) ||
 									isCreating
 								}
-								isLoading={isCreating}
 							>
-								{step === 3 ? "Complete Setup" : "Continue"}
+								{isCreating ? (
+									<>
+										<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+										Creating...
+									</>
+								) : step === 3 ? (
+									"Complete Setup"
+								) : (
+									"Continue"
+								)}
 							</Button>
 						</div>
 					</div>

@@ -3,13 +3,19 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { signIn, getSession } from "next-auth/react";
+// 1. Swap next-auth for convex-auth
+import { useAuthActions } from "@convex-dev/auth/react";
+import { useConvex } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function SignInPage() {
   const router = useRouter();
+  const { signIn } = useAuthActions();
+  const convex = useConvex(); // Used to fetch the user role after sign in
+  
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -20,44 +26,43 @@ export default function SignInPage() {
     setError("");
     setIsLoading(true);
 
-    const res = await signIn("password", {
-      email,
-      password,
-      flow: "signIn",
-      redirect: false,
-    });
+    try {
+      // 2. Perform Sign In
+      // In Convex Auth, redirect: false is the default behavior for this method
+      await signIn("password", {
+        email,
+        password,
+        flow: "signIn",
+      });
 
-    if (res?.error) {
+      // 3. Fetch user profile to handle role-based redirection
+      // We use a manual fetch here because the hook version (useQuery) 
+      // might not have updated the cache yet.
+      const userProfile = await convex.query(api.users.queries.getProfile);
+      
+      // Get the primary role (adjust logic if user has multiple orgs)
+      const role = userProfile?.organizations[0]?.role;
+
+      if (role === "admin") {
+        router.push("/admin/dashboard");
+      } else if (role === "manager") {
+        router.push("/managers/dashboard");
+      } else if (role === "worker") {
+        router.push("/worker/dashboard");
+      } else {
+        router.push("/dashboard");
+      }
+    } catch (err) {
+      console.error(err);
       setError("Invalid email or password");
+    } finally {
       setIsLoading(false);
-      return;
     }
-
-    const session = await getSession();
-    const role = (session?.user as any)?.role as
-      | "admin"
-      | "manager"
-      | "worker"
-      | "customer"
-      | undefined;
-
-    if (role === "admin") {
-      router.push("/admin/dashboard");
-    } else if (role === "manager") {
-      router.push("/managers/dashboard");
-    } else if (role === "worker") {
-      router.push("/worker/dashboard");
-    } else {
-      router.push("/dashboard");
-    }
-    
-
-    setIsLoading(false);
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4 relative overflow-hidden">
-      {/* Background gradients */}
+      {/* Background gradients stay the same */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-primary/20 rounded-full blur-[120px] -z-10 opacity-50" />
       <div className="absolute bottom-0 right-0 w-[800px] h-[600px] bg-purple-500/10 rounded-full blur-[100px] -z-10 opacity-50" />
 

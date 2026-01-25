@@ -3,17 +3,17 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api";
+// 1. Swap next-auth for convex-auth
+import { useAuthActions } from "@convex-dev/auth/react";
 
 export default function SignUpPage() {
 	const router = useRouter();
+	const { signIn } = useAuthActions(); // Use this instead of next-auth
 	const searchParams = useSearchParams();
-	const inviteToken = searchParams.get("token");
+	
 	const [formData, setFormData] = useState({
 		firstName: "",
 		lastName: "",
@@ -25,41 +25,42 @@ export default function SignUpPage() {
 	const [isLoading, setIsLoading] = useState(false);
 	const [accountType, setAccountType] = useState<"customer" | "admin">("customer");
 
-	const acceptInvite = useMutation(api.members.mutations.acceptInvite);
-	const claimCustomerAccount = useMutation(api.customers.mutations.claimAccount);
-
-	// 1. Add this hook at the top of your component
-	const linkAuthIdentity = useMutation(api.users.mutations.linkAuthIdentity);
-
-	// ... inside SignUpPage component ...
-
 	async function handleSubmit(e: React.FormEvent) {
-  e.preventDefault();
-  setIsLoading(true);
-  setError("");
+		e.preventDefault();
+		
+		if (formData.password !== formData.confirmPassword) {
+			setError("Passwords do not match");
+			return;
+		}
 
-  try {
-    await signIn("password", { 
-      email: formData.email, 
-      password: formData.password,
-      firstName: formData.firstName,
-      lastName: formData.lastName,
-      role: accountType,
-      flow: "signUp" 
-    });
-    
-    // Redirect happens automatically or via router.push
-    router.push(accountType === "admin" ? "/onboarding" : "/dashboard");
-  } catch (err) {
-    setError("Could not create account. Please try again.");
-  } finally {
-    setIsLoading(false);
-  }
-}
+		setIsLoading(true);
+		setError("");
+
+		try {
+			// 2. Convex Auth Sign Up
+			await signIn("password", {
+				email: formData.email,
+				password: formData.password,
+				// Pass extra fields to the user document
+				firstName: formData.firstName,
+				lastName: formData.lastName,
+				role: accountType,
+				flow: "signUp",
+			});
+
+			// 3. Success! Redirect based on account type
+			router.push(accountType === "admin" ? "/onboarding" : "/dashboard");
+		} catch (err) {
+			console.error(err);
+			setError("Could not create account. Please try again.");
+		} finally {
+			setIsLoading(false);
+		}
+	}
 
 	return (
 		<div className="min-h-screen flex items-center justify-center bg-background p-4 relative overflow-hidden">
-			{/* Background gradients */}
+			{/* ... Background gradients stay the same ... */}
 			<div className="absolute top-0 right-1/2 translate-x-1/2 w-[1000px] h-[500px] bg-blue-500/20 rounded-full blur-[120px] -z-10 opacity-50" />
 			<div className="absolute bottom-0 left-0 w-[800px] h-[600px] bg-indigo-500/10 rounded-full blur-[100px] -z-10 opacity-50" />
 
@@ -92,7 +93,6 @@ export default function SignUpPage() {
 					</div>
 
 					<form onSubmit={handleSubmit} className="space-y-5">
-						{/* First Name / Last Name */}
 						<div className="grid grid-cols-2 gap-4">
 							<div className="space-y-2">
 								<label htmlFor="firstName" className="text-sm font-medium ml-1">First Name</label>
@@ -120,7 +120,6 @@ export default function SignUpPage() {
 							</div>
 						</div>
 
-						{/* Email */}
 						<div className="space-y-2">
 							<label htmlFor="email" className="text-sm font-medium ml-1">Email</label>
 							<Input
@@ -135,7 +134,6 @@ export default function SignUpPage() {
 							/>
 						</div>
 
-						{/* Password */}
 						<div className="space-y-2">
 							<label htmlFor="password" className="text-sm font-medium ml-1">Password</label>
 							<Input
@@ -150,7 +148,6 @@ export default function SignUpPage() {
 							/>
 						</div>
 
-						{/* Confirm Password */}
 						<div className="space-y-2">
 							<label htmlFor="confirmPassword" className="text-sm font-medium ml-1">Confirm Password</label>
 							<Input
@@ -172,9 +169,9 @@ export default function SignUpPage() {
 						<Button
 							type="submit"
 							className="w-full h-11 rounded-xl text-base font-semibold shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all"
-							isLoading={isLoading}
+							disabled={isLoading}
 						>
-							Create Account
+							{isLoading ? "Creating..." : "Create Account"}
 						</Button>
 					</form>
 
