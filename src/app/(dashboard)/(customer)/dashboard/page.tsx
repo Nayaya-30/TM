@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useConvexAuth } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,13 +8,17 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
 import { Input } from "@/components/ui/input";
-import { Users, Plus, Ruler, Package } from "lucide-react";
+import { Users, Plus, Ruler, Package, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { format } from "date-fns";
-import { useSession } from "next-auth/react";
-
+import { useRouter } from "next/navigation";
 
 export default function CustomerDashboardPage() {
+	const router = useRouter();
+	
+	// 1. Use Convex Auth instead of next-auth
+	const { isAuthenticated, isLoading: isAuthLoading } = useConvexAuth();
+
 	const dependants = useQuery(api.dependants.queries.listMine);
 	const createDependant = useMutation(api.dependants.mutations.create);
 	const customer = useQuery(api.customers.queries.getCurrentCustomer);
@@ -28,9 +32,14 @@ export default function CustomerDashboardPage() {
 		dateOfBirth: "",
 	});
 
-	const { data: session, status } = useSession();
+	// 2. Handle Authentication Guard
+	if (!isAuthLoading && !isAuthenticated) {
+		router.push("/sign-in");
+		return null;
+	}
 
-	if (status === "loading") {
+	// 3. Combined Loading State (Auth + Data Queries)
+	if (isAuthLoading || dependants === undefined || customer === undefined) {
 		return (
 			<div className="space-y-8 p-4">
 				<div className="flex flex-col gap-2">
@@ -46,15 +55,11 @@ export default function CustomerDashboardPage() {
 		);
 	}
 
-	if (!session) {
-		router.push("/sign-in");
-		return null;
-	}
-
 	async function handleSubmit(e: React.FormEvent) {
 		e.preventDefault();
-		setIsCreating(true);
+		if (!customer?._id) return;
 
+		setIsCreating(true);
 		try {
 			await createDependant({
 				customerId: customer._id,
@@ -98,7 +103,6 @@ export default function CustomerDashboardPage() {
 			{/* Stats Bento Grid */}
 			<div className="grid gap-6 md:grid-cols-3">
 				<Card className="group relative overflow-hidden rounded-3xl border-border/50 bg-card/50 backdrop-blur-sm hover:shadow-lg transition-all duration-300">
-					<div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
 					<CardContent className="pt-6">
 						<div className="flex items-center justify-between mb-4">
 							<div className="h-10 w-10 rounded-2xl bg-purple-500/10 flex items-center justify-center">
@@ -112,7 +116,6 @@ export default function CustomerDashboardPage() {
 				</Card>
 
 				<Card className="group relative overflow-hidden rounded-3xl border-border/50 bg-card/50 backdrop-blur-sm hover:shadow-lg transition-all duration-300">
-					<div className="absolute inset-0 bg-gradient-to-br from-pink-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
 					<CardContent className="pt-6">
 						<div className="flex items-center justify-between mb-4">
 							<div className="h-10 w-10 rounded-2xl bg-pink-500/10 flex items-center justify-center">
@@ -121,14 +124,13 @@ export default function CustomerDashboardPage() {
 							<Badge variant="secondary" className="rounded-full">Total</Badge>
 						</div>
 						<div className="text-4xl font-bold mb-1">
-							{dependants.reduce((sum, d) => sum + d.measurementCount, 0)}
+							{dependants.reduce((sum, d) => sum + (d.measurementCount || 0), 0)}
 						</div>
 						<p className="text-sm text-muted-foreground">Saved Measurements</p>
 					</CardContent>
 				</Card>
 
 				<Card className="group relative overflow-hidden rounded-3xl border-border/50 bg-card/50 backdrop-blur-sm hover:shadow-lg transition-all duration-300">
-					<div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
 					<CardContent className="pt-6">
 						<div className="flex items-center justify-between mb-4">
 							<div className="h-10 w-10 rounded-2xl bg-blue-500/10 flex items-center justify-center">
@@ -137,7 +139,7 @@ export default function CustomerDashboardPage() {
 							<Badge variant="secondary" className="rounded-full">Recent</Badge>
 						</div>
 						<div className="text-4xl font-bold mb-1">
-							{dependants.reduce((sum, d) => sum + d.orderCount, 0)}
+							{dependants.reduce((sum, d) => sum + (d.orderCount || 0), 0)}
 						</div>
 						<p className="text-sm text-muted-foreground">Total Orders</p>
 					</CardContent>
@@ -146,7 +148,7 @@ export default function CustomerDashboardPage() {
 
 			{/* Dependants Grid */}
 			{dependants.length === 0 ? (
-				<Card>
+				<Card className="rounded-3xl border-dashed">
 					<CardContent className="text-center py-12">
 						<Users className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
 						<h3 className="text-lg font-medium mb-2">No family members yet</h3>
@@ -162,21 +164,20 @@ export default function CustomerDashboardPage() {
 			) : (
 				<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
 					{dependants.map((dependant) => (
-						<Card key={dependant._id} className="hover:bg-accent transition-colors">
+						<Card key={dependant._id} className="rounded-3xl hover:bg-accent transition-colors">
 							<CardHeader>
 								<div className="flex items-start justify-between">
 									<div>
 										<CardTitle className="text-lg">
 											{dependant.firstName} {dependant.lastName}
 										</CardTitle>
-										<Badge variant="default" className="mt-2 capitalize">
+										<Badge variant="outline" className="mt-2 capitalize">
 											{dependant.gender}
 										</Badge>
 									</div>
-									<div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+									<div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center">
 										<span className="text-lg font-medium text-primary">
-											{dependant.firstName[0]}
-											{dependant.lastName[0]}
+											{dependant.firstName[0]}{dependant.lastName[0]}
 										</span>
 									</div>
 								</div>
@@ -211,12 +212,10 @@ export default function CustomerDashboardPage() {
 				</div>
 			)}
 
-			{/* Add Dependant Modal */}
 			<Modal
 				isOpen={isModalOpen}
 				onClose={() => setIsModalOpen(false)}
 				title="Add Family Member"
-				size="md"
 			>
 				<form onSubmit={handleSubmit} className="space-y-4">
 					<div className="grid grid-cols-2 gap-4">
@@ -226,6 +225,7 @@ export default function CustomerDashboardPage() {
 								value={formData.firstName}
 								onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
 								required
+								className="rounded-xl"
 							/>
 						</div>
 						<div className="space-y-2">
@@ -234,6 +234,7 @@ export default function CustomerDashboardPage() {
 								value={formData.lastName}
 								onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
 								required
+								className="rounded-xl"
 							/>
 						</div>
 					</div>
@@ -243,7 +244,7 @@ export default function CustomerDashboardPage() {
 						<select
 							value={formData.gender}
 							onChange={(e) => setFormData({ ...formData, gender: e.target.value as any })}
-							className="flex h-11 w-full rounded-lg border border-input bg-background px-4 py-2 text-base"
+							className="flex h-11 w-full rounded-xl border border-input bg-background px-4 py-2 text-base focus:ring-2 focus:ring-primary outline-none"
 						>
 							<option value="male">Male</option>
 							<option value="female">Female</option>
@@ -257,14 +258,16 @@ export default function CustomerDashboardPage() {
 							type="date"
 							value={formData.dateOfBirth}
 							onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+							className="rounded-xl"
 						/>
 					</div>
 
 					<div className="flex gap-2 justify-end pt-4">
-						<Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
+						<Button type="button" variant="outline" onClick={() => setIsModalOpen(false)} className="rounded-xl">
 							Cancel
 						</Button>
-						<Button type="submit" isLoading={isCreating}>
+						<Button type="submit" disabled={isCreating} className="rounded-xl">
+							{isCreating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
 							Add Member
 						</Button>
 					</div>
@@ -273,5 +276,3 @@ export default function CustomerDashboardPage() {
 		</div>
 	);
 }
-
-//

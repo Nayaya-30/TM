@@ -3,13 +3,13 @@
 import { useConvexAuth, useQuery } from "convex/react";
 import { useRouter } from "next/navigation";
 import { api } from "@/convex/_generated/api";
-
 import { Sidebar } from "@/components/layout/sidebar";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { FloatingChat } from "@/components/ui/floating-chat";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MessageCircle, Bell } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { useEffect } from "react";
 
 /* -------------------------------------------------------------------------- */
 /* ORG HEADER                                                                 */
@@ -18,39 +18,41 @@ import { ThemeToggle } from "@/components/theme-toggle";
 function OrgHeader({ organizationId }: { organizationId: string | null }) {
 	const org = useQuery(
 		api.organizations.queries.get,
-		organizationId ? { organizationId } : "skip"
+		organizationId ? { organizationId: organizationId as any } : "skip"
 	);
 
-	if (!org) return null;
+	// If no org (common for pure customers), show a default brand header or nothing
+	if (!org) return (
+		<header className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur-sm h-16 flex items-center px-4 lg:px-6">
+			<h1 className="font-bold text-xl text-primary">TailorFlow</h1>
+		</header>
+	);
 
 	return (
 		<header className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur-sm">
 			<div className="flex items-center justify-between px-4 lg:px-6 h-16">
 				<div className="flex items-center gap-3">
-					{org.logo && (
-						<img
-							src={org.logo}
-							alt={org.name}
-							className="h-8 w-8 rounded-lg object-cover"
-						/>
+					{org.logo ? (
+						<img src={org.logo} alt={org.name} className="h-8 w-8 rounded-lg object-cover" />
+					) : (
+						<div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center font-bold text-primary">
+							{org.name[0]}
+						</div>
 					)}
 					<div>
 						<h1 className="font-semibold">{org.name}</h1>
-						{org.verified && (
-							<span className="text-xs text-muted-foreground">
-								✓ Verified
-							</span>
-						)}
+						{org.verified && <span className="text-[10px] uppercase tracking-wider text-green-600 font-bold">Verified</span>}
 					</div>
 				</div>
 
 				<div className="flex items-center gap-2">
 					<ThemeToggle />
-					<button className="p-2 rounded-lg hover:bg-accent transition-colors">
+					<button className="p-2 rounded-lg hover:bg-accent transition-colors relative">
 						<MessageCircle className="h-5 w-5" />
 					</button>
-					<button className="p-2 rounded-lg hover:bg-accent transition-colors">
+					<button className="p-2 rounded-lg hover:bg-accent transition-colors relative">
 						<Bell className="h-5 w-5" />
+						<span className="absolute top-2 right-2 h-2 w-2 bg-red-500 rounded-full border-2 border-card" />
 					</button>
 				</div>
 			</div>
@@ -62,38 +64,38 @@ function OrgHeader({ organizationId }: { organizationId: string | null }) {
 /* DASHBOARD LAYOUT                                                           */
 /* -------------------------------------------------------------------------- */
 
-export default function DashboardLayout({
-	children,
-}: {
-	children: React.ReactNode;
-}) {
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
 	const router = useRouter();
 	const { isAuthenticated, isLoading } = useConvexAuth();
 
-	// 1. Get user data (Convex Auth automatically knows who is calling this)
-	const currentUser = useQuery(api.users.queries.getCurrentUser);
 	const profile = useQuery(api.users.queries.getProfile);
 
-	// Auth & Data Loading State
-	if (isLoading || currentUser === undefined || profile === undefined) {
+	// Redirect logic in a useEffect to avoid side effects during render
+	useEffect(() => {
+		if (!isLoading && !isAuthenticated) {
+			router.push("/sign-in");
+		}
+	}, [isLoading, isAuthenticated, router]);
+
+	// Wait for Auth and Profile data
+	if (isLoading || profile === undefined) {
 		return <LoadingShell />;
 	}
 
-	// Redirect if not logged in
-	if (!isAuthenticated) {
-		router.push("/sign-in");
-		return null;
-	}
+	// Double check auth status
+	if (!isAuthenticated) return null;
 
 	/* --------------------------- DERIVED STATE ---------------------------- */
+	// Check if user has an organization (Admins/Managers/Workers)
 	const primaryOrg = profile?.organizations?.[0] ?? null;
-	const userRole = (primaryOrg?.role as any) ?? "customer";
+	
+	// Default to 'customer' if no specific org-role is found
+	const userRole = primaryOrg?.role ?? profile?.role ?? "customer";
 	const organizationId = primaryOrg?.organizationId ?? null;
 	const accentColor = primaryOrg?.accentColor ?? "blue";
 
 	return (
 		<div className="min-h-screen flex flex-col lg:flex-row bg-background relative overflow-hidden">
-			{/* Patterns omitted for brevity */}
 			<Sidebar userRole={userRole} accentColor={accentColor} />
 
 			<div className="flex-1 flex flex-col lg:pl-72 transition-all duration-300 relative z-10">
@@ -109,25 +111,29 @@ export default function DashboardLayout({
 	);
 }
 
-/* -------------------------------------------------------------------------- */
-/* LOADING SHELL                                                              */
-/* -------------------------------------------------------------------------- */
-
 function LoadingShell() {
 	return (
-		<div className="min-h-screen flex">
-			<div className="hidden lg:block w-64 border-r border-border bg-card p-4 space-y-4">
-				<Skeleton className="h-12 w-full" />
-				<Skeleton className="h-12 w-full" />
-				<Skeleton className="h-12 w-full" />
-				<Skeleton className="h-12 w-full" />
+		<div className="min-h-screen flex bg-background">
+			<div className="hidden lg:block w-72 border-r border-border bg-card p-6 space-y-8">
+				<Skeleton className="h-10 w-32" />
+				<div className="space-y-4">
+					<Skeleton className="h-12 w-full rounded-xl" />
+					<Skeleton className="h-12 w-full rounded-xl" />
+					<Skeleton className="h-12 w-full rounded-xl" />
+				</div>
 			</div>
-			<div className="flex-1 p-6">
-				<Skeleton className="h-8 w-48 mb-6" />
-				<div className="grid gap-4">
-					<Skeleton className="h-32 w-full" />
-					<Skeleton className="h-32 w-full" />
-					<Skeleton className="h-32 w-full" />
+			<div className="flex-1 flex flex-col">
+				<div className="h-16 border-b border-border px-6 flex items-center justify-between">
+					<Skeleton className="h-6 w-32" />
+					<Skeleton className="h-10 w-24 rounded-full" />
+				</div>
+				<div className="p-6 space-y-6">
+					<Skeleton className="h-10 w-64" />
+					<div className="grid gap-6 md:grid-cols-3">
+						<Skeleton className="h-32 rounded-3xl" />
+						<Skeleton className="h-32 rounded-3xl" />
+						<Skeleton className="h-32 rounded-3xl" />
+					</div>
 				</div>
 			</div>
 		</div>
