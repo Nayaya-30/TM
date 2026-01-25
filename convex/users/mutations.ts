@@ -184,16 +184,12 @@ export const signUpUser = mutation({
 			throw new ConvexError("Email already exists");
 		}
 
-		const hash = bcrypt.hashSync(args.password, 10);
-
 		const now = Date.now();
 
 		// Do NOT set authSubject here — it will be set later on first authenticated action
 		// (or leave it undefined/null for credentials users)
 		const userId = await ctx.db.insert("users", {
 			email,
-			passwordHash: hash,
-			passwordSalt: "deprecated",
 			firstName: args.firstName || email.split("@")[0],
 			lastName: args.lastName || "",
 			emailVerified: false,

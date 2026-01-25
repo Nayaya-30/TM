@@ -1,24 +1,20 @@
-// convex/users/helpers.ts
 import { QueryCtx, MutationCtx } from "../_generated/server";
+import { Id } from "../_generated/dataModel";
 import { ConvexError } from "convex/values";
+import { getAuthUserId } from "@convex-dev/auth/server";
 
-/**
- * Validates the current session and returns the full user document.
- * Works for both Queries and Mutations.
- */
 export async function requireUser(ctx: QueryCtx | MutationCtx) {
-  // getUserId() is the primary helper for Convex Auth
-  const userId = await ctx.auth.getUserId();
+	const userId = await getAuthUserId(ctx);
 
-  if (!userId) {
-    throw new ConvexError("Unauthenticated: No session found");
-  }
+	if (!userId) {
+		throw new ConvexError("Unauthenticated");
+	}
 
-  const user = await ctx.db.get(userId);
+	const user = await ctx.db.get(userId as Id<"users">);
 
-  if (!user) {
-    throw new ConvexError("User not found in database");
-  }
+	if (!user) {
+		throw new ConvexError("User not found");
+	}
 
-  return user;
+	return user;
 }

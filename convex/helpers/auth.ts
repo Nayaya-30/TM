@@ -1,6 +1,7 @@
 import { QueryCtx, MutationCtx } from "../_generated/server";
 import { Id } from "../_generated/dataModel";
 import { ConvexError } from "convex/values";
+import { getAuthUserId } from "@convex-dev/auth/server";
 import { requireUser } from "../users/helpers";
 
 export type UserRole = "admin" | "manager" | "worker" | "customer";
@@ -11,36 +12,23 @@ export interface AuthContext {
 	role: UserRole;
 }
 
-// ============================================================================
-// GET CURRENT USER CONTEXT
-// ============================================================================
-
-/**
- * Retrieves the authenticated user's ID, verifies their existence in the 'users' table,
- * and fetches their active organization membership.
- */
 export async function getCurrentUserContext(
 	ctx: QueryCtx | MutationCtx
 ): Promise<AuthContext> {
-	// 1. Get the authenticated ID from the Convex Auth session
-	const userId = await ctx.auth.getUserId();
+	const userId = await getAuthUserId(ctx);
 
 	if (!userId) {
 		throw new ConvexError("Unauthenticated");
 	}
 
-	// 2. Fetch the full user document using your existing helper
-	// This ensures the user exists in your custom 'users' table
 	const user = await requireUser(ctx);
 
-	// 3. Get user's current organization membership
 	const membership = await ctx.db
 		.query("orgMemberships")
 		.withIndex("by_user", (q) => q.eq("userId", userId))
 		.filter((q) => q.eq(q.field("inviteAccepted"), true))
 		.first();
 
-	// Handle the case where a user is logged in but hasn't joined an org yet
 	if (!membership) {
 		throw new ConvexError("No organization membership found");
 	}

@@ -1,46 +1,32 @@
 import { query } from '../_generated/server';
-import { ConvexError, v } from 'convex/values';
+import { v } from 'convex/values';
+import { getAuthUserId } from "@convex-dev/auth/server";
 import { requireUser } from './helpers';
-
-// ============================================================================
-// GET CURRENT USER (by ID - passed from Next-Auth)
-// ============================================================================
 
 export const getCurrentUser = query({
 	args: {},
 	handler: async (ctx) => {
-		const userId = await ctx.auth.getUserId();
+		const userId = await getAuthUserId(ctx);
 		if (!userId) return null;
 		return await ctx.db.get(userId);
 	},
 });
 
-// ============================================================================
-// GET USER BY EMAIL
-// ============================================================================
-
 export const getUserByEmail = query({
-	args: {
-		email: v.string(),
-	},
+	args: { email: v.string() },
 	handler: async (ctx, args) => {
 		const user = await ctx.db
 			.query('users')
 			.withIndex('by_email', (q) => q.eq('email', args.email))
 			.first();
-
 		return user || null;
 	},
 });
 
-// ============================================================================
-// GET USER PROFILE (by ID - passed from Next-Auth)
-// ============================================================================
-
 export const getProfile = query({
-	args: {}, // Removed args.userId
+	args: {}, 
 	handler: async (ctx) => {
-		const user = await requireUser(ctx); // Use the helper!
+		const user = await requireUser(ctx);
 
 		const memberships = await ctx.db
 			.query('orgMemberships')
