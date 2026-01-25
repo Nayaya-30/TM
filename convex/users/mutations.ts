@@ -1,6 +1,5 @@
 import { mutation } from "../_generated/server";
 import { ConvexError, v } from "convex/values";
-import bcrypt from "bcryptjs";
 
 // ============================================================================
 // CREATE USER
@@ -338,96 +337,5 @@ export const registerPassword = mutation({
 		});
 
 		return userId;
-	},
-});
-
-export const verifyCredentials = mutation({
-	args: {
-		email: v.string(),
-		password: v.string(),
-	},
-	handler: async (ctx, { email, password }) => {
-		const normalizedEmail = email.toLowerCase();
-		const user = await ctx.db
-			.query("users")
-			.withIndex("by_email", q => q.eq("email", normalizedEmail))
-			.first();
-
-		if (!user || !user.passwordHash) return null;
-
-		// ✅ Compare bcrypt hash
-		const isValid = bcrypt.compareSync(password, user.passwordHash);
-		if (!isValid) return null;
-
-		return {
-			id: user._id,                        // ← use Convex _id directly
-			email: user.email,
-			name: `\( {user.firstName} \){user.lastName}`,
-			image: user.avatar ?? null,
-			role: user.role ?? "customer",
-		};
-	},
-});
-
-export const linkAuthIdentity = mutation({
-	handler: async (ctx) => {
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) throw new ConvexError("Not authenticated");
-
-		const user = await ctx.db
-			.query("users")
-			.withIndex("by_email", (q) => q.eq("email", identity.email!))
-			.unique();
-
-		if (!user) throw new ConvexError("User not found");
-
-		// Link the database user to the NextAuth 'sub'
-		if (user.authSubject !== identity.subject) {
-			await ctx.db.patch(user._id, {
-				authSubject: identity.subject,
-				updatedAt: Date.now(),
-			});
-		}
-
-		return user._id;
-	},
-});
-
-export const linkAuthToUser = mutation({
-	handler: async (ctx) => {
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) throw new ConvexError("Unauthenticated");
-
-		// Try to find user already linked
-		let user = await ctx.db
-			.query("users")
-			.withIndex("by_authSubject", q =>
-				q.eq("authSubject", identity.subject)
-			)
-			.unique();
-
-		if (user) return user;
-
-		// Fallback: link by email
-		if (!identity.email) {
-			throw new ConvexError("No email in identity");
-		}
-
-		user = await ctx.db
-			.query("users")
-			.withIndex("by_email", q =>
-				q.eq("email", identity.email!)
-			)
-			.unique();
-
-		if (!user) {
-			throw new ConvexError("User not found for auth linking");
-		}
-
-		await ctx.db.patch(user._id, {
-			authSubject: identity.subject,
-		});
-
-		return { linked: true };
 	},
 });

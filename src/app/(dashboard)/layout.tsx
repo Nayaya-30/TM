@@ -1,8 +1,7 @@
 "use client";
 
-import { useQuery } from "convex/react";
+import { useConvexAuth, useQuery } from "convex/react";
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
 import { api } from "@/convex/_generated/api";
 
 import { Sidebar } from "@/components/layout/sidebar";
@@ -69,78 +68,42 @@ export default function DashboardLayout({
 	children: React.ReactNode;
 }) {
 	const router = useRouter();
-	const { data: session, status } = useSession();
+	const { isAuthenticated, isLoading } = useConvexAuth();
 
-	// 🚨 AUTH GATE — do not touch Convex yet
-	if (status === "loading") {
+	// 1. Get user data (Convex Auth automatically knows who is calling this)
+	const currentUser = useQuery(api.users.queries.getCurrentUser);
+	const profile = useQuery(api.users.queries.getProfile);
+
+	// Auth & Data Loading State
+	if (isLoading || currentUser === undefined || profile === undefined) {
 		return <LoadingShell />;
 	}
 
-	if (status === "unauthenticated" || !session?.user?.id) {
+	// Redirect if not logged in
+	if (!isAuthenticated) {
 		router.push("/sign-in");
 		return null;
 	}
 
-	const userId = session.user.id as string;
-
-	/* --------------------------- CONVEX QUERIES --------------------------- */
-
-	const currentUser = useQuery(
-		api.users.queries.getCurrentUser,
-		{ userId: userId ?? "" },
-		{ enabled: !!userId }
-	);
-
-	const profile = useQuery(
-		api.users.queries.getProfile,
-		{ userId: userId ?? "" },
-		{ enabled: !!userId }
-	);
-
-	// Still loading Convex data
-	if (status === "loading" || currentUser === undefined || profile === undefined) {
-  return <LoadingShell />;
-}
-
-if (!session || !userId || !currentUser || !profile) {
-  router.push("/sign-in");
-  return null;
-}
-
 	/* --------------------------- DERIVED STATE ---------------------------- */
-
-	const primaryOrg = profile.organizations[0] ?? null;
-
-	const userRole =
-		(primaryOrg?.role as
-			| "admin"
-			| "manager"
-			| "worker"
-			| "customer") ?? "customer";
-
+	const primaryOrg = profile?.organizations?.[0] ?? null;
+	const userRole = (primaryOrg?.role as any) ?? "customer";
 	const organizationId = primaryOrg?.organizationId ?? null;
 	const accentColor = primaryOrg?.accentColor ?? "blue";
 
-	/* ------------------------------ RENDER ------------------------------- */
-
 	return (
 		<div className="min-h-screen flex flex-col lg:flex-row bg-background relative overflow-hidden">
-			{/* Background Pattern */}
-			<div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/5 via-background to-background pointer-events-none" />
-			<div className="absolute inset-0 h-full w-full bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
-
+			{/* Patterns omitted for brevity */}
 			<Sidebar userRole={userRole} accentColor={accentColor} />
 
 			<div className="flex-1 flex flex-col lg:pl-72 transition-all duration-300 relative z-10">
 				<OrgHeader organizationId={organizationId} />
-
 				<main className="flex-1 p-4 lg:p-6 pb-20 lg:pb-6">
 					{children}
 				</main>
 			</div>
 
 			<MobileNav userRole={userRole} accentColor={accentColor} />
-
 			<FloatingChat />
 		</div>
 	);

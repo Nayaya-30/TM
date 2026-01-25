@@ -9,6 +9,7 @@
  */
 
 import type * as analytics_queries from "../analytics/queries.js";
+import type * as auth from "../auth.js";
 import type * as chat_mutations from "../chat/mutations.js";
 import type * as chat_queries from "../chat/queries.js";
 import type * as customers_mutations from "../customers/mutations.js";
@@ -46,6 +47,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   "analytics/queries": typeof analytics_queries;
+  auth: typeof auth;
   "chat/mutations": typeof chat_mutations;
   "chat/queries": typeof chat_queries;
   "customers/mutations": typeof customers_mutations;

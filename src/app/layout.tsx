@@ -1,25 +1,19 @@
 "use client";
 
-import type { Metadata } from "next";
 import "./globals.css";
 import { ConvexClientProvider } from "@/components/providers/convex-client-provider";
-import { SessionProvider } from "next-auth/react";
+import { ConvexAuthNextjsServerProvider } from "@convex-dev/auth/nextjs/server";
 import { ThemeProvider } from "@/components/providers/theme-provider";
-import { AuthLinker } from "@/components/authLink"
-const metadata: Metadata = {
-	title: "Tailoring Management Platform",
-	description: "Professional tailoring business management solution",
-};
 
 export default function RootLayout({
 	children,
-}: Readonly<{
+}: {
 	children: React.ReactNode;
-}>) {
+}) {
 	return (
-		<html lang="en">
-			<body>
-				<SessionProvider>
+		<ConvexAuthNextjsServerProvider>
+			<html lang="en" suppressHydrationWarning>
+				<body>
 					<ThemeProvider
 						attribute="class"
 						defaultTheme="system"
@@ -27,12 +21,11 @@ export default function RootLayout({
 						disableTransitionOnChange
 					>
 						<ConvexClientProvider>
-							<AuthLinker />
 							{children}
 						</ConvexClientProvider>
 					</ThemeProvider>
-				</SessionProvider>
-			</body>
-		</html>
+				</body>
+			</html>
+		</ConvexAuthNextjsServerProvider>
 	);
 }
