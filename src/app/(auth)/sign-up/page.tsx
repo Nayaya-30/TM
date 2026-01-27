@@ -1,18 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-// 1. Swap next-auth for convex-auth
 import { useAuthActions } from "@convex-dev/auth/react";
+import { useConvexAuth } from "convex/react";
 
 export default function SignUpPage() {
 	const router = useRouter();
-	const { signIn } = useAuthActions(); // Use this instead of next-auth
-	const searchParams = useSearchParams();
+	const { signIn } = useAuthActions();
+	const { isAuthenticated } = useConvexAuth();
 
 	const [formData, setFormData] = useState({
 		firstName: "",
@@ -24,6 +24,16 @@ export default function SignUpPage() {
 	const [error, setError] = useState("");
 	const [isLoading, setIsLoading] = useState(false);
 	const [accountType, setAccountType] = useState<"customer" | "admin">("customer");
+	const [redirectPath, setRedirectPath] = useState<string | null>(null);
+
+	// Handle redirect after successful authentication
+	useEffect(() => {
+		console.log("[Sign-Up] Auth state changed:", { isAuthenticated, redirectPath });
+		if (isAuthenticated && redirectPath) {
+			console.log("[Sign-Up] Redirecting to:", redirectPath);
+			router.push(redirectPath);
+		}
+	}, [isAuthenticated, redirectPath, router]);
 
 	async function handleSubmit(e: React.FormEvent) {
 		e.preventDefault();
@@ -37,29 +47,41 @@ export default function SignUpPage() {
 		setError("");
 
 		try {
-			// 2. Convex Auth Sign Up
-			await signIn("password", {
+			console.log("[Sign-Up] Starting sign up for:", formData.email);
+			
+			// Sign up with Convex Auth
+			const result = await signIn("password", {
 				email: formData.email,
-        password: formData.password,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        role: accountType,
-        flow: "signUp",
+				password: formData.password,
+				firstName: formData.firstName,
+				lastName: formData.lastName,
+				role: accountType,
+				flow: "signUp",
 			});
 
-			// 3. Success! Redirect based on account type
-			router.push(accountType === "admin" ? "/onboarding" : "/dashboard");
-		} catch (err) {
-			console.error(err);
-			setError("Could not create account. Please try again.");
-		} finally {
+			console.log("[Sign-Up] signIn result:", result);
+			
+			// Set redirect path
+			const targetPath = accountType === "admin" ? "/onboarding" : "/dashboard";
+			console.log("[Sign-Up] Setting redirect path:", targetPath);
+			setRedirectPath(targetPath);
+			
+			// Add a more aggressive fallback - force redirect after 1 second
+			setTimeout(() => {
+				console.log("[Sign-Up] Timeout reached. isAuthenticated:", isAuthenticated);
+				console.log("[Sign-Up] Forcing redirect to:", targetPath);
+				router.push(targetPath);
+			}, 1000);
+		} catch (err: any) {
+			console.error("[Sign-Up] Error:", err);
+			setError(err?.message || "Could not create account. Please try again.");
 			setIsLoading(false);
 		}
 	}
 
 	return (
 		<div className="min-h-screen flex items-center justify-center bg-background p-4 relative overflow-hidden">
-			{/* ... Background gradients stay the same ... */}
+			{/* Background gradients */}
 			<div className="absolute top-0 right-1/2 translate-x-1/2 w-[1000px] h-[500px] bg-blue-500/20 rounded-full blur-[120px] -z-10 opacity-50" />
 			<div className="absolute bottom-0 left-0 w-[800px] h-[600px] bg-indigo-500/10 rounded-full blur-[100px] -z-10 opacity-50" />
 

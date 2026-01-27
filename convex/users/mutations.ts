@@ -159,51 +159,51 @@ export const updateImage = mutation({
 // GET OR CREATE USER (Legacy/Next-Auth integration - keeping but updating)
 // ============================================================================
 
-export const signUpUser = mutation({
-	args: {
-		email: v.string(),
-		password: v.string(),
-		firstName: v.optional(v.string()),
-		lastName: v.optional(v.string()),
-		role: v.union(
-			v.literal("admin"),
-			v.literal("manager"),
-			v.literal("worker"),
-			v.literal("customer"),
-		),
-	},
-	handler: async (ctx, args) => {
-		const email = args.email.toLowerCase();
+// export const signUpUser = mutation({
+//	args: {
+//		email: v.string(),
+//		password: v.string(),
+//		firstName: v.optional(v.string()),
+//		lastName: v.optional(v.string()),
+//		role: v.union(
+//			v.literal("admin"),
+//			v.literal("manager"),
+//			v.literal("worker"),
+//			v.literal("customer"),
+//		),
+//	},
+//	handler: async (ctx, args) => {
+//		const email = args.email.toLowerCase();
 
-		const existing = await ctx.db
-			.query("users")
-			.withIndex("by_email", (q) => q.eq("email", email))
-			.first();
+//		const existing = await ctx.db
+//			.query("users")
+//			.withIndex("by_email", (q) => q.eq("email", email))
+//			.first();
 
-		if (existing) {
-			throw new ConvexError("Email already exists");
-		}
+//		if (existing) {
+//			throw new ConvexError("Email already exists");
+//		}
 
-		const now = Date.now();
+//		const now = Date.now();
 
-		// Do NOT set authSubject here — it will be set later on first authenticated action
-		// (or leave it undefined/null for credentials users)
-		const userId = await ctx.db.insert("users", {
-			email,
-			firstName: args.firstName || email.split("@")[0],
-			lastName: args.lastName || "",
-			emailVerified: false,
-			phone: undefined,
-			phoneVerified: false,
-			image: undefined, // changed from avatar
-			role: args.role,
-			createdAt: now,
-			updatedAt: now,
-		});
+//		// Do NOT set authSubject here — it will be set later on first authenticated action
+//		// (or leave it undefined/null for credentials users)
+//		const userId = await ctx.db.insert("users", {
+//			email,
+//			firstName: args.firstName || email.split("@")[0],
+//			lastName: args.lastName || "",
+//			emailVerified: false,
+//			phone: undefined,
+//			phoneVerified: false,
+//			image: undefined, // changed from avatar
+//			role: args.role,
+//			createdAt: now,
+//			updatedAt: now,
+//		});
 
-		return userId;
-	},
-});
+//		return userId;
+//	},
+// });
 
 // ============================================================================
 // DELETE USER (Admin only)

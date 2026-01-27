@@ -68,7 +68,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 	const router = useRouter();
 	const { isAuthenticated, isLoading } = useConvexAuth();
 
-	const profile = useQuery(api.users.queries.getProfile);
+	// Only fetch profile if authenticated - this prevents the "Unauthenticated" error
+	const profile = useQuery(
+		api.users.queries.getProfile,
+		isAuthenticated ? {} : "skip"
+	);
 
 	// Redirect logic in a useEffect to avoid side effects during render
 	useEffect(() => {
@@ -77,22 +81,43 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 		}
 	}, [isLoading, isAuthenticated, router]);
 
-	// Wait for Auth and Profile data
-	if (isLoading || profile === undefined) {
+	// Wait for Auth check to complete
+	if (isLoading) {
 		return <LoadingShell />;
 	}
 
-	// Double check auth status
-	if (!isAuthenticated) return null;
+	// If not authenticated after loading, don't render (will redirect)
+	if (!isAuthenticated) {
+		return null;
+	}
+
+	// Wait for Profile data to load
+	if (profile === undefined) {
+		return <LoadingShell />;
+	}
+
+	// Handle case where profile doesn't exist (shouldn't happen but good to check)
+	if (profile === null) {
+		return (
+			<div className="min-h-screen flex items-center justify-center p-4">
+				<div className="text-center space-y-4">
+					<h1 className="text-2xl font-bold">Profile Not Found</h1>
+					<p className="text-muted-foreground">
+						Your account exists but your profile is missing. Please contact support.
+					</p>
+				</div>
+			</div>
+		);
+	}
 
 	/* --------------------------- DERIVED STATE ---------------------------- */
 	// Check if user has an organization (Admins/Managers/Workers)
-	const primaryOrg = profile?.organizations?.[0] ?? null;
+	const primaryOrg = profile.organizations?.[0] ?? null;
 	
 	// Default to 'customer' if no specific org-role is found
-	const userRole = primaryOrg?.role ?? profile?.role ?? "customer";
+	const userRole = primaryOrg?.role ?? profile.user?.role ?? "customer";
 	const organizationId = primaryOrg?.organizationId ?? null;
-	const accentColor = primaryOrg?.accentColor ?? "blue";
+	const accentColor = "blue"; // You can add this to your org data if needed
 
 	return (
 		<div className="min-h-screen flex flex-col lg:flex-row bg-background relative overflow-hidden">
