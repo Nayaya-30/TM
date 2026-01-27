@@ -15,13 +15,18 @@ export default defineSchema({
 	// ==========================================================================// Simplified users table definition for your schema.ts
 
 users: defineTable({
-  email: v.string(),
-  emailVerified: v.boolean(),
-  phone: v.optional(v.string()),
-  phoneVerified: v.boolean(),
-  firstName: v.string(),
-  lastName: v.string(),
+  // Convex Auth required fields
+  name: v.optional(v.string()),
   image: v.optional(v.string()),
+  email: v.optional(v.string()),
+  emailVerificationTime: v.optional(v.number()),
+  phone: v.optional(v.string()),
+  phoneVerificationTime: v.optional(v.number()),
+  isAnonymous: v.optional(v.boolean()),
+  
+  // Your custom fields
+  firstName: v.optional(v.string()),
+  lastName: v.optional(v.string()),
   role: v.optional(
     v.union(
       v.literal("admin"),
@@ -30,11 +35,12 @@ users: defineTable({
       v.literal("customer"),
     ),
   ),
-  createdAt: v.float64(),
-  updatedAt: v.float64(),
-})
-  .index("by_email", ["email"]),
-	
+  emailVerified: v.optional(v.boolean()),
+  phoneVerified: v.optional(v.boolean()),
+  createdAt: v.optional(v.float64()),
+  updatedAt: v.optional(v.float64()),
+}).index("by_email", ["email"]),
+
 	// ==========================================================================
 	// ORGANIZATIONS
 	// ==========================================================================

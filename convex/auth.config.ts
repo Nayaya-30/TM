@@ -1,12 +1,10 @@
-import { Password } from "@convex-dev/auth/providers/Password";
+import { AuthConfig } from "convex/server";
 
-// convex/auth.config.ts
 export default {
-	providers: [
-		{
-			// For Auth0 / OIDC
-			domain: "http://localhost:3000",
-			applicationID: "convex",
-		},
-	],
-};
+  providers: [
+    {
+      domain: process.env.CONVEX_SITE_URL!,
+      applicationID: "convex",
+    },
+  ],
+} satisfies AuthConfig;

@@ -1,16 +1,19 @@
 import { query } from '../_generated/server';
 import { v } from 'convex/values';
+import { Id } from "../_generated/dataModel";
+import { getAuthUserId } from "@convex-dev/auth/server";
+
 
 export const getCurrentUser = query({
 	args: {},
 	handler: async (ctx) => {
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) return null;
+		const userId = await getAuthUserId(ctx);
 
-		// The identity.subject IS the user ID in the users table
-		// because Convex Auth uses our users table as the user table
-		const user = await ctx.db.get(identity.subject as any);
-		return user || null;
+		if (!userId) return null; // <-- exit early if no user
+
+		// Now TypeScript knows userId is Id<"users">, not null
+		const user = await ctx.db.get(userId);
+		return user;
 	},
 });
 
@@ -26,48 +29,38 @@ export const getUserByEmail = query({
 });
 
 export const getProfile = query({
-	args: {},
-	handler: async (ctx) => {
-		const identity = await ctx.auth.getUserIdentity();
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return null;
 
-		if (!identity) {
-			return null;
-		}
+    const user = await ctx.db.get(userId);
+    if (!user) return null;
 
-		// The identity.subject IS the user ID
-		const user = await ctx.db.get(identity.subject as any);
+    const memberships = await ctx.db
+      .query('orgMemberships')
+      .withIndex('by_user', (q) => q.eq('userId', user._id)) // ✅ no cast
+      .filter((q) => q.eq(q.field('inviteAccepted'), true))
+      .collect();
 
-		if (!user) {
-			return null;
-		}
+    const organizations = await Promise.all(
+      memberships.map(async (membership) => {
+        const org = await ctx.db.get(membership.organizationId);
+        if (!org) return null;
+        return {
+          organizationId: org._id,
+          name: org.name,
+          slug: org.slug,
+          logo: org.logo,
+          role: membership.role,
+          joinedAt: membership.joinedAt,
+        };
+      })
+    );
 
-		// Get user's organization memberships
-		const memberships = await ctx.db
-			.query('orgMemberships')
-			.withIndex('by_user', (q) => q.eq('userId', user._id as any))
-			.filter((q) => q.eq(q.field('inviteAccepted'), true))
-			.collect();
-
-		// Fetch organization details for each membership
-		const organizations = await Promise.all(
-			memberships.map(async (membership) => {
-				const org = await ctx.db.get(membership.organizationId);
-				return org
-					? {
-						organizationId: org._id,
-						name: org.name,
-						slug: org.slug,
-						logo: org.logo,
-						role: membership.role,
-						joinedAt: membership.joinedAt,
-					}
-					: null;
-			})
-		);
-
-		return {
-			user,
-			organizations: organizations.filter((org): org is NonNullable<typeof org> => org !== null),
-		};
-	},
+    return {
+      user,
+      organizations: organizations.filter(Boolean),
+    };
+  },
 });

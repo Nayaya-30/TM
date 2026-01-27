@@ -1,4 +1,3 @@
-// src/app/debug-auth/page.tsx
 "use client";
 
 import { useConvexAuth, useQuery } from "convex/react";
@@ -7,41 +6,62 @@ import { useAuthActions } from "@convex-dev/auth/react";
 import { useEffect, useState } from "react";
 
 export default function DebugAuthPage() {
-	const { isAuthenticated, isLoading } = useConvexAuth();
+	const { isAuthenticated, isLoading, session } = useConvexAuth();
 	const { signIn, signOut } = useAuthActions();
 	const currentUser = useQuery(api.users.queries.getCurrentUser);
-	const profile = useQuery(
-		api.users.queries.getProfile,
-		isAuthenticated ? {} : "skip"
-	);
+	const profile = useQuery(api.users.queries.getProfile, isAuthenticated ? {} : "skip");
 
 	const [cookies, setCookies] = useState<string>("Loading...");
 	const [localStorage, setLocalStorage] = useState<string>("Loading...");
 	const [testResult, setTestResult] = useState<string>("");
 
+	// Debug: log auth session whenever it changes
 	useEffect(() => {
-		// Only access browser APIs on client
-		setCookies(document.cookie || "No cookies");
+		console.log("[DEBUG] useConvexAuth state changed:", { isAuthenticated, isLoading, session });
+		if (session) {
+			console.log("[DEBUG] Session details:", {
+				userId: session.userId,
+				email: session.user?.email,
+				role: session.user?.role,
+				token: session.token, // JWT issued by Convex
+				expires: session.expires,
+			});
+		} else {
+			console.log("[DEBUG] No session (not signed in)");
+		}
+	}, [session, isAuthenticated, isLoading]);
 
+	// Debug: log cookies & localStorage on mount
+	useEffect(() => {
+		setCookies(document.cookie || "No cookies");
 		const storage = Object.keys(window.localStorage).reduce((acc, key) => {
 			acc[key] = window.localStorage.getItem(key);
 			return acc;
 		}, {} as Record<string, string | null>);
-
 		setLocalStorage(JSON.stringify(storage, null, 2));
 	}, []);
 
 	const handleTestSignIn = async () => {
 		setTestResult("Testing sign in...");
 		try {
-			await signIn("password", {
+			const result = await signIn("password", {
 				email: "nexr.fr@gmail.com",
 				password: "2021Byn95@",
 				flow: "signIn",
 			});
-			setTestResult("Sign in attempt completed - check auth state above");
+			console.log("[DEBUG] signIn result:", result);
+
+			// Wait briefly for session to update
+			const checkSession = setInterval(() => {
+				if (isAuthenticated) {
+					console.log("[DEBUG] User authenticated! Session:", session);
+					clearInterval(checkSession);
+					setTestResult("Sign in completed. See console for session/token.");
+				}
+			}, 100);
 		} catch (err: any) {
 			setTestResult(`Error: ${err.message || String(err)}`);
+			console.error("[DEBUG] signIn error:", err);
 		}
 	};
 
@@ -49,8 +69,10 @@ export default function DebugAuthPage() {
 		try {
 			await signOut();
 			setTestResult("Signed out");
+			console.log("[DEBUG] Signed out. Session should be cleared:", session);
 		} catch (err: any) {
 			setTestResult(`Error signing out: ${err.message || String(err)}`);
+			console.error("[DEBUG] signOut error:", err);
 		}
 	};
 
@@ -74,7 +96,12 @@ export default function DebugAuthPage() {
 								{isAuthenticated.toString()}
 							</span>
 						</div>
+						<div>
+							<span className="text-muted-foreground">Session token:</span>{" "}
+							<pre className="inline font-mono text-xs">{session?.token || "No token"}</pre>
+						</div>
 					</div>
+
 					<div className="flex gap-2 mt-4">
 						<button
 							onClick={handleTestSignIn}
@@ -96,6 +123,7 @@ export default function DebugAuthPage() {
 					)}
 				</div>
 
+				{/* Current User */}
 				<div className="p-6 border rounded-lg space-y-4">
 					<h2 className="text-xl font-semibold">Current User</h2>
 					<pre className="p-4 bg-muted rounded text-xs overflow-auto">
@@ -105,6 +133,7 @@ export default function DebugAuthPage() {
 					</pre>
 				</div>
 
+				{/* Profile */}
 				<div className="p-6 border rounded-lg space-y-4">
 					<h2 className="text-xl font-semibold">Profile</h2>
 					<pre className="p-4 bg-muted rounded text-xs overflow-auto">
@@ -114,18 +143,16 @@ export default function DebugAuthPage() {
 					</pre>
 				</div>
 
+				{/* Cookies */}
 				<div className="p-6 border rounded-lg space-y-4">
 					<h2 className="text-xl font-semibold">Cookies</h2>
-					<pre className="p-4 bg-muted rounded text-xs overflow-auto">
-						{cookies}
-					</pre>
+					<pre className="p-4 bg-muted rounded text-xs overflow-auto">{cookies}</pre>
 				</div>
 
+				{/* LocalStorage */}
 				<div className="p-6 border rounded-lg space-y-4">
 					<h2 className="text-xl font-semibold">localStorage</h2>
-					<pre className="p-4 bg-muted rounded text-xs overflow-auto">
-						{localStorage}
-					</pre>
+					<pre className="p-4 bg-muted rounded text-xs overflow-auto">{localStorage}</pre>
 				</div>
 			</div>
 		</div>

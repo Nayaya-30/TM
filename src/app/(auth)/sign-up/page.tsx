@@ -12,7 +12,7 @@ import { useConvexAuth } from "convex/react";
 export default function SignUpPage() {
 	const router = useRouter();
 	const { signIn } = useAuthActions();
-	const { isAuthenticated } = useConvexAuth();
+	const { isAuthenticated, session } = useConvexAuth();
 
 	const [formData, setFormData] = useState({
 		firstName: "",
@@ -45,11 +45,9 @@ export default function SignUpPage() {
 
 		setIsLoading(true);
 		setError("");
-
 		try {
-			console.log("[Sign-Up] Starting sign up for:", formData.email);
-			
-			// Sign up with Convex Auth
+			console.log("[Sign-Up] Attempting signIn with email:", formData.email);
+
 			const result = await signIn("password", {
 				email: formData.email,
 				password: formData.password,
@@ -59,25 +57,40 @@ export default function SignUpPage() {
 				flow: "signUp",
 			});
 
-			console.log("[Sign-Up] signIn result:", result);
-			
-			// Set redirect path
 			const targetPath = accountType === "admin" ? "/onboarding" : "/dashboard";
 			console.log("[Sign-Up] Setting redirect path:", targetPath);
 			setRedirectPath(targetPath);
-			
-			// Add a more aggressive fallback - force redirect after 1 second
-			setTimeout(() => {
-				console.log("[Sign-Up] Timeout reached. isAuthenticated:", isAuthenticated);
-				console.log("[Sign-Up] Forcing redirect to:", targetPath);
-				router.push(targetPath);
-			}, 1000);
+
+			console.log("[DEBUG] Convex Auth State:", { isAuthenticated, session });
+			console.log("[Sign-Up] signIn result:", result);
 		} catch (err: any) {
-			console.error("[Sign-Up] Error:", err);
-			setError(err?.message || "Could not create account. Please try again.");
+			console.error("[Sign-Up] signIn threw error:", err);
+			setError(err?.message || "Sign up failed");
 			setIsLoading(false);
 		}
+
 	}
+
+	useEffect(() => {
+		if (isAuthenticated) {
+			router.push(accountType === "admin" ? "/onboarding" : "/dashboard");
+		}
+	}, [isAuthenticated])
+
+	// Add this useEffect inside your component, after getting session from useConvexAuth
+	useEffect(() => {
+		if (session) {
+			console.log("[DEBUG] Convex Auth Token / Session:", {
+				userId: session.userId,
+				email: session.user?.email,
+				roles: session.user?.role,
+				token: session.token, // This is the Convex-issued JWT
+				expires: session.expires,
+			});
+		} else {
+			console.log("[DEBUG] No session yet (user not authenticated)");
+		}
+	}, [session]);
 
 	return (
 		<div className="min-h-screen flex items-center justify-center bg-background p-4 relative overflow-hidden">

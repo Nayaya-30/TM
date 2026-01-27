@@ -1,18 +1,22 @@
 // convex/users/helpers.ts
 import { QueryCtx, MutationCtx } from "../_generated/server";
-import { Id } from "../_generated/dataModel";
+import { getAuthUserId } from "@convex-dev/auth/server";
 import { ConvexError } from "convex/values";
 
+/**
+ * Returns the currently authenticated user.
+ * Throws ConvexError if not authenticated or user not found.
+ */
 export async function requireUser(ctx: QueryCtx | MutationCtx) {
-  const identity = await ctx.auth.getUserIdentity();
+  // Get typed user ID
+  const userId = await getAuthUserId(ctx);
 
-  if (!identity) {
+  if (!userId) {
     throw new ConvexError("Unauthenticated");
   }
 
-  // In Convex Auth, identity.subject IS the user ID in the users table
-  // because Convex Auth is using our custom users table
-  const user = await ctx.db.get(identity.subject as Id<"users">);
+  // Fetch user from the DB
+  const user = await ctx.db.get(userId);
 
   if (!user) {
     throw new ConvexError("User not found");
