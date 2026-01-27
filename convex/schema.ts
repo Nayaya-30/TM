@@ -12,30 +12,29 @@ export default defineSchema({
 
 	// ==========================================================================
 	// USERS
-	// ==========================================================================
-	users: defineTable({
-		email: v.string(),
-		emailVerified: v.boolean(),
-		phone: v.optional(v.string()),
-		phoneVerified: v.boolean(),
-		authSubject: v.optional(v.string()),
-		firstName: v.string(),
-		lastName: v.string(),
-		image: v.optional(v.string()), // Standardize to 'image' for Convex Auth
-		role: v.optional(
-			v.union(
-				v.literal("admin"),
-				v.literal("manager"),
-				v.literal("worker"),
-				v.literal("customer"),
-			),
-		),
-		createdAt: v.float64(),
-		updatedAt: v.float64(),
-	})
-		.index("by_email", ["email"])
-		.index("by_authSubject", ["authSubject"]),
+	// ==========================================================================// Simplified users table definition for your schema.ts
 
+users: defineTable({
+  email: v.string(),
+  emailVerified: v.boolean(),
+  phone: v.optional(v.string()),
+  phoneVerified: v.boolean(),
+  firstName: v.string(),
+  lastName: v.string(),
+  image: v.optional(v.string()),
+  role: v.optional(
+    v.union(
+      v.literal("admin"),
+      v.literal("manager"),
+      v.literal("worker"),
+      v.literal("customer"),
+    ),
+  ),
+  createdAt: v.float64(),
+  updatedAt: v.float64(),
+})
+  .index("by_email", ["email"]),
+	
 	// ==========================================================================
 	// ORGANIZATIONS
 	// ==========================================================================

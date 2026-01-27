@@ -74,7 +74,6 @@ export const invite = mutation({
 				phoneVerified: false,
 				createdAt: now,
 				updatedAt: now,
-				authSubject: identity?.subject || "",
 			});
 		}
 

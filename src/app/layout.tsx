@@ -1,5 +1,5 @@
 // src/app/layout.tsx
-import { AuthWrapper } from "./auth-wrapper"; // Import your local wrapper
+import { ConvexAuthNextjsServerProvider } from "@convex-dev/auth/nextjs/server";
 import { ConvexClientProvider } from "@/components/providers/convex-client-provider";
 import "./globals.css";
 
@@ -9,7 +9,7 @@ export default function RootLayout({
 	children: React.ReactNode;
 }) {
 	return (
-		<AuthWrapper>
+		<ConvexAuthNextjsServerProvider>
 			<html lang="en">
 				<body>
 					<ConvexClientProvider>
@@ -17,6 +17,6 @@ export default function RootLayout({
 					</ConvexClientProvider>
 				</body>
 			</html>
-		</AuthWrapper>
+		</ConvexAuthNextjsServerProvider>
 	);
 }

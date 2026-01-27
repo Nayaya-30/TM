@@ -41,7 +41,6 @@ export const createUser = mutation({
 			image: args.image, // changed from avatar
 			createdAt: now,
 			updatedAt: now,
-			authSubject: identity.subject,
 		});
 
 		return userId;
