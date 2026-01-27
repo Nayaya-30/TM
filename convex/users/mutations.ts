@@ -10,7 +10,7 @@ export const createUser = mutation({
 		email: v.string(),
 		firstName: v.string(),
 		lastName: v.string(),
-		avatar: v.optional(v.string()),
+		image: v.optional(v.string()), // changed from avatar
 		phone: v.optional(v.string()),
 	},
 	handler: async (ctx, args) => {
@@ -38,7 +38,7 @@ export const createUser = mutation({
 			phoneVerified: false,
 			firstName: args.firstName,
 			lastName: args.lastName,
-			avatar: args.avatar,
+			image: args.image, // changed from avatar
 			createdAt: now,
 			updatedAt: now,
 			authSubject: identity.subject,
@@ -58,7 +58,7 @@ export const updateProfile = mutation({
 		firstName: v.optional(v.string()),
 		lastName: v.optional(v.string()),
 		phone: v.optional(v.string()),
-		avatar: v.optional(v.string()),
+		image: v.optional(v.string()), // changed from avatar
 	},
 	handler: async (ctx, args) => {
 		const { userId, ...updateData } = args;
@@ -77,7 +77,7 @@ export const updateProfile = mutation({
 		if (updateData.firstName) updateFields.firstName = updateData.firstName;
 		if (updateData.lastName) updateFields.lastName = updateData.lastName;
 		if (updateData.phone !== undefined) updateFields.phone = updateData.phone;
-		if (updateData.avatar !== undefined) updateFields.avatar = updateData.avatar;
+		if (updateData.image !== undefined) updateFields.image = updateData.image; // changed from avatar
 
 		await ctx.db.patch(userId, updateFields);
 
@@ -132,13 +132,13 @@ export const verifyPhone = mutation({
 });
 
 // ============================================================================
-// UPDATE AVATAR
+// UPDATE IMAGE (was UPDATE AVATAR)
 // ============================================================================
 
-export const updateAvatar = mutation({
+export const updateImage = mutation({
 	args: {
 		userId: v.id("users"),
-		avatar: v.string(),
+		image: v.string(), // changed from avatar
 	},
 	handler: async (ctx, args) => {
 		const user = await ctx.db.get(args.userId);
@@ -147,7 +147,7 @@ export const updateAvatar = mutation({
 		}
 
 		await ctx.db.patch(args.userId, {
-			avatar: args.avatar,
+			image: args.image, // changed from avatar
 			updatedAt: Date.now(),
 		});
 
@@ -156,7 +156,7 @@ export const updateAvatar = mutation({
 });
 
 // ============================================================================
-// GET OR CREATE USER (for Next-Auth integration)
+// GET OR CREATE USER (Legacy/Next-Auth integration - keeping but updating)
 // ============================================================================
 
 export const signUpUser = mutation({
@@ -195,7 +195,7 @@ export const signUpUser = mutation({
 			emailVerified: false,
 			phone: undefined,
 			phoneVerified: false,
-			avatar: undefined,
+			image: undefined, // changed from avatar
 			role: args.role,
 			createdAt: now,
 			updatedAt: now,
@@ -284,53 +284,5 @@ export const updatePhone = mutation({
 		});
 
 		return await ctx.db.get(args.userId);
-	},
-});
-
-export const registerPassword = mutation({
-	args: {
-		email: v.string(),
-		passwordHash: v.string(),
-		passwordSalt: v.string(),
-	},
-	handler: async (ctx, args) => {
-		const identity = await ctx.auth.getUserIdentity();
-
-		if (!identity) {
-			throw new ConvexError("Unauthenticated");
-		}
-
-		const existing = await ctx.db
-			.query("users")
-			.withIndex("by_email", (q) => q.eq("email", args.email))
-			.first();
-
-		const now = Date.now();
-
-		if (existing) {
-			await ctx.db.patch(existing._id, {
-				passwordHash: args.passwordHash,
-				passwordSalt: args.passwordSalt,
-				updatedAt: now,
-			});
-			return existing._id;
-		}
-
-		const userId = await ctx.db.insert("users", {
-			email: args.email,
-			emailVerified: false,
-			phone: undefined,
-			phoneVerified: false,
-			firstName: "",
-			lastName: "",
-			avatar: undefined,
-			passwordHash: args.passwordHash,
-			passwordSalt: args.passwordSalt,
-			createdAt: now,
-			updatedAt: now,
-			authSubject: identity.subject,
-		});
-
-		return userId;
 	},
 });

@@ -58,7 +58,7 @@ export const listConversations = query({
                 _id: otherParticipant._id,
                 firstName: otherParticipant.firstName,
                 lastName: otherParticipant.lastName,
-                avatar: otherParticipant.avatar,
+                image: otherParticipant.image,
               }
             : null,
           lastMessage: lastMessage
@@ -116,7 +116,7 @@ export const getConversation = query({
             _id: otherParticipant._id,
             firstName: otherParticipant.firstName,
             lastName: otherParticipant.lastName,
-            avatar: otherParticipant.avatar,
+            image: otherParticipant.image,
           }
         : null,
       createdAt: conversation.createdAt,
@@ -173,7 +173,7 @@ export const listMessages = query({
                 _id: sender._id,
                 firstName: sender.firstName,
                 lastName: sender.lastName,
-                avatar: sender.avatar,
+                image: sender.image,
               }
             : null,
           isOwnMessage: message.senderId === userId,

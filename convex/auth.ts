@@ -37,13 +37,15 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
 			if (args.type === "credentials") {
 				return await ctx.db.insert("users", {
 					...newUser,
-					// passwordHash: args.passwordHash,
-					// passwordSalt: args.passwordSalt,
+					// authSubject: args.tokenIdentifier, // Link via authSubject
 				});
 			}
 
 			// For other providers (OAuth/Magic Link), insert without password fields
-			return await ctx.db.insert("users", newUser);
+			return await ctx.db.insert("users", {
+				...newUser,
+				// authSubject: args.tokenIdentifier, // Link via authSubject
+			});
 		},
 	},
 });

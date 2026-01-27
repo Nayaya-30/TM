@@ -100,7 +100,7 @@ export const list = query({
             ? {
                 firstName: worker.firstName,
                 lastName: worker.lastName,
-                avatar: worker.avatar,
+                image: worker.image,
               }
             : null,
           materials: materialDetails,
@@ -184,7 +184,7 @@ export const get = query({
             _id: worker._id,
             firstName: worker.firstName,
             lastName: worker.lastName,
-            avatar: worker.avatar,
+            image: worker.image,
           }
         : null,
       createdBy: createdBy

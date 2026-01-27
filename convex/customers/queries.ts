@@ -68,7 +68,7 @@ export const list = query({
           claimed: !!customer.claimedAt,
           user: user
             ? {
-                avatar: user.avatar,
+                image: user.image,
                 emailVerified: user.emailVerified,
               }
             : null,
@@ -127,7 +127,7 @@ export const get = query({
       claimedAt: customer.claimedAt,
       user: user
         ? {
-            avatar: user.avatar,
+            image: user.image,
             emailVerified: user.emailVerified,
             phoneVerified: user.phoneVerified,
           }

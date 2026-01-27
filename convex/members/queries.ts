@@ -54,7 +54,7 @@ export const list = query({
                 email: user.email,
                 firstName: user.firstName,
                 lastName: user.lastName,
-                avatar: user.avatar,
+                image: user.image,
               }
             : null,
         };
@@ -104,7 +104,7 @@ export const get = query({
             email: user.email,
             firstName: user.firstName,
             lastName: user.lastName,
-            avatar: user.avatar,
+            image: user.image,
             phone: user.phone,
           }
         : null,
@@ -166,7 +166,7 @@ export const listWorkersWithStats = query({
                 email: user.email,
                 firstName: user.firstName,
                 lastName: user.lastName,
-                avatar: user.avatar,
+                image: user.image,
               }
             : null,
           stats: {

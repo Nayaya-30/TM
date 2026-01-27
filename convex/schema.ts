@@ -9,20 +9,19 @@ import { authTables } from "@convex-dev/auth/server";
 export default defineSchema({
 
 	...authTables,
+
 	// ==========================================================================
-	// USERS (Next-Auth)
+	// USERS
 	// ==========================================================================
 	users: defineTable({
 		email: v.string(),
 		emailVerified: v.boolean(),
-		passwordHash: v.optional(v.string()),
-		passwordSalt: v.optional(v.string()),
 		phone: v.optional(v.string()),
 		phoneVerified: v.boolean(),
 		authSubject: v.optional(v.string()),
 		firstName: v.string(),
 		lastName: v.string(),
-		avatar: v.optional(v.string()),
+		image: v.optional(v.string()), // Standardize to 'image' for Convex Auth
 		role: v.optional(
 			v.union(
 				v.literal("admin"),
