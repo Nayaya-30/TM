@@ -4,24 +4,17 @@ import { ConvexError } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 
 export async function requireUser(ctx: QueryCtx | MutationCtx) {
-	const userId = await getAuthUserId(ctx);
+  const identity = await ctx.auth.getUserIdentity();
 
-	if (!userId) {
-		throw new ConvexError("Unauthenticated");
-	}
+  if (!identity) {
+    throw new ConvexError("Unauthenticated");
+  }
 
-	// First try: Treat userId as the actual document ID (Standard Convex Auth)
-	const user = await ctx.db.get(userId as Id<"users">);
-	if (user) return user;
+  const user = await ctx.db.get(identity.subject as Id<"users">);
 
-	// Second try: Treat userId as the authSubject (Identity Crisis Fallback)
-	// This handles cases where 'userId' is actually the token identifier
-	const userBySubject = await ctx.db
-		.query("users")
-		.withIndex("by_authSubject", (q) => q.eq("authSubject", userId))
-		.first();
+  if (!user) {
+    throw new ConvexError("User not found");
+  }
 
-	if (userBySubject) return userBySubject;
-
-	throw new ConvexError("User not found");
+  return user;
 }

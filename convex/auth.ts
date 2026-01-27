@@ -1,11 +1,12 @@
 // convex/auth.ts
 import { Password } from "@convex-dev/auth/providers/Password";
 import { convexAuth } from "@convex-dev/auth/server";
+import { MutationCtx } from "./_generated/server";
 
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
-	providers: [
-		Password({
-			profile(params) {
+  providers: [
+    Password({
+      profile(params) {
 				return {
 					email: params.email as string,
 					firstName: params.firstName as string,
@@ -16,13 +17,24 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
 		}),
 	],
 	callbacks: {
-		async createOrUpdateUser(ctx, args) {
-			if (args.existingUserId) return args.existingUserId;
+    async createOrUpdateUser(ctxUnsafe, args) {
+      const ctx = ctxUnsafe as MutationCtx;
+      if (args.existingUserId) return args.existingUserId;
 
-			const { firstName, lastName, role, email } = args.profile;
+      const { firstName, lastName, role, email } = args.profile;
 
-			// Base user object with your specific required fields
-			const newUser = {
+			// Check if user with this email already exists
+      const existingUser = await ctx.db
+        .query("users")
+        .withIndex("by_email", (q) => q.eq("email", email as string))
+        .unique();
+
+      if (existingUser) {
+        return existingUser._id;
+      }
+
+      // Base user object with your specific required fields
+      const newUser = {
 				email: email as string,
 				firstName: (firstName as string) ?? "",
 				lastName: (lastName as string) ?? "",
