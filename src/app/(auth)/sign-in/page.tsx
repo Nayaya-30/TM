@@ -27,25 +27,34 @@ export default function SignInPage() {
 	}, [isAuthenticated, router]);
 
 	async function handleSubmit(e: React.FormEvent) {
-		e.preventDefault();
-		setError("");
-		setIsLoading(true);
+  e.preventDefault();
+  setError("");
+  setIsLoading(true);
 
-		try {
-			// Perform Sign In
-			await signIn("password", {
-				email,
-				password,
-				flow: "signIn",
-			});
+  try {
+    await signIn("password", {
+      email,
+      password,
+      flow: "signIn",
+    });
 
-			// Don't manually redirect - let the useEffect handle it when isAuthenticated becomes true
-		} catch (err: any) {
-			console.error("Sign in error:", err);
-			setError("Invalid email or password");
-			setIsLoading(false);
-		}
-	}
+    // Optional: brief wait + check (helps in slow networks)
+    await new Promise(r => setTimeout(r, 1200));
+    if (isAuthenticated) {
+      console.log("Already authenticated after signIn");
+    }
+    // No need to redirect here — useEffect will catch it
+  } catch (err: any) {
+    console.error("Sign in error:", err);
+    setError(
+      err.message?.includes("credentials") 
+        ? "Invalid email or password" 
+        : "Something went wrong — please try again"
+    );
+  } finally {
+    setIsLoading(false);
+  }
+}
 
 	return (
 		<div className="min-h-screen flex items-center justify-center bg-background p-4 relative overflow-hidden">

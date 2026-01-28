@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 // 1. Swap next-auth for useConvexAuth
 import { useConvexAuth, useMutation } from "convex/react";
@@ -14,7 +14,7 @@ export default function OnboardingPage() {
 	const router = useRouter();
 	// 2. Use Convex Auth state
 	const { isAuthenticated, isLoading: isAuthLoading } = useConvexAuth();
-	
+
 	const createOrganization = useMutation(api.organizations.mutations.create);
 
 	const [step, setStep] = useState(1);
@@ -36,10 +36,12 @@ export default function OnboardingPage() {
 	];
 
 	// 3. Handle redirect if not logged in
-	if (!isAuthLoading && !isAuthenticated) {
-		router.push("/sign-in");
-		return null;
-	}
+
+	useEffect(() => {
+		if (!isAuthLoading && !isAuthenticated) {
+			router.push("/sign-in");
+		}
+	}, [isAuthLoading, isAuthenticated, router]);
 
 	async function handleSubmit() {
 		if (step < 3) {

@@ -36,40 +36,56 @@ export default function SignUpPage() {
 	}, [isAuthenticated, redirectPath, router]);
 
 	async function handleSubmit(e: React.FormEvent) {
-		e.preventDefault();
+  e.preventDefault();
 
-		if (formData.password !== formData.confirmPassword) {
-			setError("Passwords do not match");
-			return;
-		}
+  if (formData.password !== formData.confirmPassword) {
+    setError("Passwords do not match");
+    return;
+  }
 
-		setIsLoading(true);
-		setError("");
-		try {
-			console.log("[Sign-Up] Attempting signIn with email:", formData.email);
+  setIsLoading(true);
+  setError("");
 
-			const result = await signIn("password", {
-				email: formData.email,
-				password: formData.password,
-				firstName: formData.firstName,
-				lastName: formData.lastName,
-				role: accountType,
-				flow: "signUp",
-			});
+  try {
+    // Step 1: Create the user (signUp flow)
+    await signIn("password", {
+      email: formData.email,
+      password: formData.password,
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      role: accountType,
+      flow: "signUp",
+    });
 
-			const targetPath = accountType === "admin" ? "/onboarding" : "/dashboard";
-			console.log("[Sign-Up] Setting redirect path:", targetPath);
-			setRedirectPath(targetPath);
+    console.log("[Sign-Up] Account created, now signing in...");
 
-			console.log("[DEBUG] Convex Auth State:", { isAuthenticated, session });
-			console.log("[Sign-Up] signIn result:", result);
-		} catch (err: any) {
-			console.error("[Sign-Up] signIn threw error:", err);
-			setError(err?.message || "Sign up failed");
-			setIsLoading(false);
-		}
+    // Step 2: Immediately sign in with the same credentials
+    const signInResult = await signIn("password", {
+      email: formData.email,
+      password: formData.password,
+      flow: "signIn",           // ← critical change here
+    });
 
-	}
+    console.log("[Sign-Up] Auto sign-in result:", signInResult);
+
+    // Give the client a moment to receive + apply the new session (usually <1s)
+    await new Promise(resolve => setTimeout(resolve, 800));
+
+    if (isAuthenticated) {
+      const targetPath = accountType === "admin" ? "/onboarding" : "/dashboard";
+      router.push(targetPath);
+    } else {
+      // Rare race — fallback
+      setError("Account created, but auto-login failed. Please sign in manually.");
+      router.push("/sign-in");
+    }
+  } catch (err: any) {
+    console.error("[Sign-Up] Error:", err);
+    setError(err.message || "Sign up failed (check if email is already used)");
+  } finally {
+    setIsLoading(false);
+  }
+}
 
 	useEffect(() => {
 		if (isAuthenticated) {
