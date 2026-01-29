@@ -15,7 +15,14 @@ export const create = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { userId, organizationId, role } = await getCurrentUserContext(ctx);
+    const context = await getCurrentUserContext(ctx);
+    const organizationId = context.organizationId;
+    const role = context.role;
+    const userId = context.userId;
+
+    if (!organizationId || !role) {
+      throw new ConvexError("Organization and role required for this action");
+    }
 
     const dependant = await ctx.db.get(args.dependantId);
 
@@ -95,7 +102,14 @@ export const update = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { userId, organizationId, role } = await getCurrentUserContext(ctx);
+    const context = await getCurrentUserContext(ctx);
+    const organizationId = context.organizationId;
+    const role = context.role;
+    const userId = context.userId;
+
+    if (!organizationId || !role) {
+      throw new ConvexError("Organization and role required for this action");
+    }
 
     const measurement = await ctx.db.get(args.measurementId);
 
@@ -162,7 +176,14 @@ export const remove = mutation({
     measurementId: v.id("measurements"),
   },
   handler: async (ctx, args) => {
-    const { userId, organizationId, role } = await getCurrentUserContext(ctx);
+    const context = await getCurrentUserContext(ctx);
+    const organizationId = context.organizationId;
+    const role = context.role;
+    const userId = context.userId;
+
+    if (!organizationId || !role) {
+      throw new ConvexError("Organization and role required for this action");
+    }
 
     const measurement = await ctx.db.get(args.measurementId);
 

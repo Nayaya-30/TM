@@ -5,10 +5,7 @@ import { getCurrentUserContext } from "../helpers/auth";
 import { Id } from "../_generated/dataModel";
 import { requireUser } from "../users/helpers";
 
-// ============================================================================
 // GET ORGANIZATION BY ID
-// ============================================================================
-
 export const get = query({
   args: {
     organizationId: v.id("organizations"),
@@ -24,10 +21,7 @@ export const get = query({
   },
 });
 
-// ============================================================================
 // GET ORGANIZATION BY SLUG (PUBLIC)
-// ============================================================================
-
 export const getBySlug = query({
   args: {
     slug: v.string(),
@@ -46,10 +40,7 @@ export const getBySlug = query({
   },
 });
 
-// ============================================================================
 // LIST ALL ORGANIZATIONS (PUBLIC)
-// ============================================================================
-
 export const list = query({
   args: {
     verifiedOnly: v.optional(v.boolean()),
@@ -74,15 +65,12 @@ export const list = query({
   },
 });
 
-// ============================================================================
 // GET CURRENT USER'S ORGANIZATION
-// ============================================================================
-
 export const getCurrent = query({
   handler: async (ctx) => {
     const { organizationId } = await getCurrentUserContext(ctx);
     
-    const org = await ctx.db.get(organizationId);
+    const org = await ctx.db.get(organizationId!);
     
     if (!org) {
       throw new ConvexError("Organization not found");
@@ -92,10 +80,7 @@ export const getCurrent = query({
   },
 });
 
-// ============================================================================
 // GET USER'S ORGANIZATIONS
-// ============================================================================
-
 export const getUserOrganizations = query({
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -115,7 +100,7 @@ export const getUserOrganizations = query({
 
     const organizations = await Promise.all(
       memberships.map(async (membership) => {
-        const org = await ctx.db.get(membership.organizationId);
+        const org = await ctx.db.get(membership.organizationId!);
         return org
           ? {
               ...org,
@@ -129,10 +114,7 @@ export const getUserOrganizations = query({
   },
 });
 
-// ============================================================================
 // GET ORGANIZATION STATS
-// ============================================================================
-
 export const getStats = query({
   handler: async (ctx) => {
     const { organizationId, role } = await getCurrentUserContext(ctx);
@@ -152,42 +134,42 @@ export const getStats = query({
     ] = await Promise.all([
       ctx.db
         .query("orders")
-        .withIndex("by_org", (q) => q.eq("organizationId", organizationId))
+        .withIndex("by_org", (q) => q.eq("organizationId", organizationId!))
         .collect()
         .then((orders) => orders.length),
       ctx.db
         .query("orders")
-        .withIndex("by_org", (q) => q.eq("organizationId", organizationId))
+        .withIndex("by_org", (q) => q.eq("organizationId", organizationId!))
         .filter((q) => q.neq(q.field("currentStage"), "delivery"))
         .collect()
         .then((orders) => orders.length),
       ctx.db
         .query("orders")
         .withIndex("by_org_stage", (q) =>
-          q.eq("organizationId", organizationId).eq("currentStage", "delivery")
+          q.eq("organizationId", organizationId!).eq("currentStage", "delivery")
         )
         .collect()
         .then((orders) => orders.length),
       ctx.db
         .query("customers")
-        .withIndex("by_org", (q) => q.eq("organizationId", organizationId))
+        .withIndex("by_org", (q) => q.eq("organizationId", organizationId!))
         .collect()
         .then((customers) => customers.length),
       ctx.db
         .query("orgMemberships")
-        .withIndex("by_org", (q) => q.eq("organizationId", organizationId))
+        .withIndex("by_org", (q) => q.eq("organizationId", organizationId!))
         .filter((q) => q.eq(q.field("role"), "worker"))
         .collect()
         .then((workers) => workers.length),
       ctx.db
         .query("tasks")
-        .withIndex("by_org", (q) => q.eq("organizationId", organizationId))
+        .withIndex("by_org", (q) => q.eq("organizationId", organizationId!))
         .collect()
         .then((tasks) => tasks.length),
       ctx.db
         .query("tasks")
         .withIndex("by_org_status", (q) =>
-          q.eq("organizationId", organizationId).eq("status", "completed")
+          q.eq("organizationId", organizationId!).eq("status", "completed")
         )
         .collect()
         .then((tasks) => tasks.length),

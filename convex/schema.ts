@@ -1,3 +1,4 @@
+// convex/schema.ts
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { authTables } from "@convex-dev/auth/server";
@@ -12,34 +13,33 @@ export default defineSchema({
 
 	// ==========================================================================
 	// USERS
-	// ==========================================================================// Simplified users table definition for your schema.ts
+	// ==========================================================================
+	users: defineTable({
+		// Convex Auth required fields
+		name: v.optional(v.string()),
+		image: v.optional(v.string()),
+		email: v.optional(v.string()),
+		emailVerificationTime: v.optional(v.number()),
+		phone: v.optional(v.string()),
+		phoneVerificationTime: v.optional(v.number()),
+		isAnonymous: v.optional(v.boolean()),
 
-users: defineTable({
-  // Convex Auth required fields
-  name: v.optional(v.string()),
-  image: v.optional(v.string()),
-  email: v.optional(v.string()),
-  emailVerificationTime: v.optional(v.number()),
-  phone: v.optional(v.string()),
-  phoneVerificationTime: v.optional(v.number()),
-  isAnonymous: v.optional(v.boolean()),
-  
-  // Your custom fields
-  firstName: v.optional(v.string()),
-  lastName: v.optional(v.string()),
-  role: v.optional(
-    v.union(
-      v.literal("admin"),
-      v.literal("manager"),
-      v.literal("worker"),
-      v.literal("customer"),
-    ),
-  ),
-  emailVerified: v.optional(v.boolean()),
-  phoneVerified: v.optional(v.boolean()),
-  createdAt: v.optional(v.float64()),
-  updatedAt: v.optional(v.float64()),
-}).index("by_email", ["email"]),
+		// Your custom fields
+		firstName: v.optional(v.string()),
+		lastName: v.optional(v.string()),
+		role: v.optional(
+			v.union(
+				v.literal("admin"),
+				v.literal("manager"),
+				v.literal("worker"),
+				v.literal("customer"),
+			),
+		),
+		emailVerified: v.optional(v.boolean()),
+		phoneVerified: v.optional(v.boolean()),
+		createdAt: v.optional(v.float64()),
+		updatedAt: v.optional(v.float64()),
+	}).index("by_email", ["email"]),
 
 	// ==========================================================================
 	// ORGANIZATIONS
@@ -86,8 +86,8 @@ users: defineTable({
 	// ORG MEMBERSHIPS
 	// ==========================================================================
 	orgMemberships: defineTable({
-		userId: v.id("users"),
-		organizationId: v.id("organizations"),
+		organizationId: v.optional(v.id("organizations")),
+		userId: v.optional(v.id("users")),
 		role: v.union(
 			v.literal("admin"),
 			v.literal("manager"),
@@ -108,7 +108,7 @@ users: defineTable({
 	// CUSTOMERS
 	// ==========================================================================
 	customers: defineTable({
-		organizationId: v.id("organizations"),
+		organizationId: v.optional(v.id("organizations")),  // Made optional
 		userId: v.optional(v.id("users")),
 		firstName: v.string(),
 		lastName: v.string(),
@@ -129,8 +129,8 @@ users: defineTable({
 	// DEPENDANTS
 	// ==========================================================================
 	dependants: defineTable({
+		organizationId: v.optional(v.id("organizations")),
 		customerId: v.id("customers"),
-		organizationId: v.id("organizations"),
 		firstName: v.string(),
 		lastName: v.string(),
 		gender: v.union(v.literal("male"), v.literal("female"), v.literal("other")),
@@ -145,7 +145,7 @@ users: defineTable({
 	// ==========================================================================
 	measurements: defineTable({
 		dependantId: v.id("dependants"),
-		organizationId: v.id("organizations"),
+		organizationId: v.optional(v.id("organizations")),  // Made optional
 		measurements: v.record(v.string(), v.float64()),
 		unit: v.union(v.literal("inches"), v.literal("cm")),
 		notes: v.optional(v.string()),
@@ -222,8 +222,7 @@ users: defineTable({
 		status: v.union(
 			v.literal("pending"),
 			v.literal("in_progress"),
-			v.literal("completed"),
-			v.literal("overdue")
+			v.literal("completed")
 		),
 		materialAllocations: v.array(
 			v.object({

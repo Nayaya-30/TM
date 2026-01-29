@@ -11,7 +11,13 @@ import { Id, Doc } from "../_generated/dataModel";
 
 export const getOverview = query({
   handler: async (ctx) => {
-    const { organizationId, role } = await getCurrentUserContext(ctx);
+    const context = await getCurrentUserContext(ctx);
+    const organizationId = context.organizationId;
+    const role = context.role;
+
+    if (!organizationId || !role) {
+      throw new ConvexError("Organization and role required for this action");
+    }
 
     if (role !== "admin") {
       throw new ConvexError("Only admins can view analytics");
@@ -76,7 +82,13 @@ export const getOrdersTrend = query({
     days: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const { organizationId, role } = await getCurrentUserContext(ctx);
+    const context = await getCurrentUserContext(ctx);
+    const organizationId = context.organizationId;
+    const role = context.role;
+
+    if (!organizationId || !role) {
+      throw new ConvexError("Organization and role required for this action");
+    }
 
     if (role !== "admin") {
       throw new ConvexError("Only admins can view analytics");
@@ -126,7 +138,13 @@ export const getOrdersTrend = query({
 
 export const getWorkerProductivity = query({
   handler: async (ctx) => {
-    const { organizationId, role } = await getCurrentUserContext(ctx);
+    const context = await getCurrentUserContext(ctx);
+    const organizationId = context.organizationId;
+    const role = context.role;
+
+    if (!organizationId || !role) {
+      throw new ConvexError("Organization and role required for this action");
+    }
 
     if (role !== "admin") {
       throw new ConvexError("Only admins can view analytics");
@@ -174,7 +192,7 @@ export const getWorkerProductivity = query({
         return {
           workerId: worker.userId,
           workerName: user
-            ? `${user.firstName} ${user.lastName}`
+            ? `\( {user.firstName} \){user.lastName}`
             : "Unknown",
           totalTasks: tasks.length,
           completedTasks: completedTasks.length,
@@ -197,7 +215,13 @@ export const getMaterialConsumption = query({
     days: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const { organizationId, role } = await getCurrentUserContext(ctx);
+    const context = await getCurrentUserContext(ctx);
+    const organizationId = context.organizationId;
+    const role = context.role;
+
+    if (!organizationId || !role) {
+      throw new ConvexError("Organization and role required for this action");
+    }
 
     if (role !== "admin") {
       throw new ConvexError("Only admins can view analytics");
@@ -229,28 +253,23 @@ export const getMaterialConsumption = query({
     const consumptionByMaterial: Record<Id<"materials">, number> = {};
 
     for (const entry of ledgerEntries) {
-      const materialId = entry.materialId as Id<"materials">;
+      const materialId = entry.materialId;
       consumptionByMaterial[materialId] =
         (consumptionByMaterial[materialId] ?? 0) + Math.abs(entry.quantity);
     }
 
     // Get material details
     const uniqueMaterialIds = new Set<Id<"materials">>(
-      ledgerEntries.map((e) => e.materialId as Id<"materials">)
+      ledgerEntries.map((e) => e.materialId)
     );
     const consumption = await Promise.all(
       Array.from(uniqueMaterialIds).map(async (materialId: Id<"materials">) => {
-        const material = await ctx.db
-          .query("materials")
-          .withIndex("by_org", (q) => q.eq("organizationId", organizationId))
-          .filter((q) => q.eq(q.field("_id"), materialId))
-          .first();
-        const quantity = consumptionByMaterial[materialId as any] ?? 0;
-        const materialDoc = material as { name?: string; unit?: string } | null;
+        const material = await ctx.db.get(materialId);
+        const quantity = consumptionByMaterial[materialId] ?? 0;
         return {
           materialId,
-          materialName: materialDoc?.name ?? "Unknown",
-          unit: materialDoc?.unit ?? "units",
+          materialName: material?.name ?? "Unknown",
+          unit: material?.unit ?? "units",
           quantity,
         };
       })
@@ -269,7 +288,13 @@ export const getRevenueTrend = query({
     days: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const { organizationId, role } = await getCurrentUserContext(ctx);
+    const context = await getCurrentUserContext(ctx);
+    const organizationId = context.organizationId;
+    const role = context.role;
+
+    if (!organizationId || !role) {
+      throw new ConvexError("Organization and role required for this action");
+    }
 
     if (role !== "admin") {
       throw new ConvexError("Only admins can view analytics");

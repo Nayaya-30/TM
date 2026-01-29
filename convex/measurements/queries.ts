@@ -13,7 +13,10 @@ export const listByDependant = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const { userId, organizationId, role } = await getCurrentUserContext(ctx);
+    const context = await getCurrentUserContext(ctx, { requireOrg: false });
+    const organizationId = context.organizationId;
+    const role = context.role ?? "customer"; // Default to customer if no role
+    const userId = context.userId;
 
     const dependant = await ctx.db.get(args.dependantId);
 
@@ -21,7 +24,7 @@ export const listByDependant = query({
       throw new ConvexError("Dependant not found");
     }
 
-    if (dependant.organizationId !== organizationId) {
+    if (dependant.organizationId && dependant.organizationId !== organizationId) {
       throw new ConvexError("Dependant belongs to different organization");
     }
 
@@ -79,7 +82,10 @@ export const get = query({
     measurementId: v.id("measurements"),
   },
   handler: async (ctx, args) => {
-    const { userId, organizationId, role } = await getCurrentUserContext(ctx);
+    const context = await getCurrentUserContext(ctx, { requireOrg: false });
+    const organizationId = context.organizationId;
+    const role = context.role ?? "customer";
+    const userId = context.userId;
 
     const measurement = await ctx.db.get(args.measurementId);
 
@@ -87,7 +93,7 @@ export const get = query({
       throw new ConvexError("Measurement not found");
     }
 
-    if (measurement.organizationId !== organizationId) {
+    if (measurement.organizationId && measurement.organizationId !== organizationId) {
       throw new ConvexError("Measurement belongs to different organization");
     }
 
@@ -140,7 +146,10 @@ export const getLatest = query({
     dependantId: v.id("dependants"),
   },
   handler: async (ctx, args) => {
-    const { userId, organizationId, role } = await getCurrentUserContext(ctx);
+    const context = await getCurrentUserContext(ctx, { requireOrg: false });
+    const organizationId = context.organizationId;
+    const role = context.role ?? "customer";
+    const userId = context.userId;
 
     const dependant = await ctx.db.get(args.dependantId);
 
@@ -148,7 +157,7 @@ export const getLatest = query({
       throw new ConvexError("Dependant not found");
     }
 
-    if (dependant.organizationId !== organizationId) {
+    if (dependant.organizationId && dependant.organizationId !== organizationId) {
       throw new ConvexError("Dependant belongs to different organization");
     }
 

@@ -6,10 +6,7 @@ import { Id } from "../_generated/dataModel";
 import { generateUniqueSlug, isValidHexColor } from "../helpers/utils";
 import { requireUser } from "../users/helpers";
 
-// ============================================================================
 // CREATE ORGANIZATION
-// ============================================================================
-
 export const create = mutation({
 	args: {
 		name: v.string(),
@@ -23,27 +20,22 @@ export const create = mutation({
 		userId: v.optional(v.string()),
 	},
 	handler: async (ctx, args) => {
-
 		const identity = await ctx.auth.getUserIdentity();
 		if (!identity) throw new ConvexError("Authentication required");
 
 		const user = await requireUser(ctx);
+		const userId = user._id;
 
-		const userId = user._id; // ✅ typed Id<"users">
-
-		// Validate accent color
 		if (!isValidHexColor(args.accentColor)) {
 			throw new ConvexError("Invalid hex color format");
 		}
 
-		// Generate unique slug
 		const existingOrgs = await ctx.db.query("organizations").collect();
 		const existingSlugs = existingOrgs.map((org) => org.slug);
 		const slug = generateUniqueSlug(args.name, existingSlugs);
 
 		const now = Date.now();
 
-		// Create organization
 		const organizationId = await ctx.db.insert("organizations", {
 			name: args.name,
 			slug,
@@ -54,7 +46,7 @@ export const create = mutation({
 			subscription: {
 				tier: "free",
 				status: "active",
-				currentPeriodEnd: now + 30 * 24 * 60 * 60 * 1000, // 30 days trial
+				currentPeriodEnd: now + 30 * 24 * 60 * 60 * 1000,
 			},
 			settings: {
 				allowWorkerAdminChat: false,
@@ -65,7 +57,6 @@ export const create = mutation({
 			updatedAt: now,
 		});
 
-		// Create admin membership for creator
 		await ctx.db.insert("orgMemberships", {
 			userId,
 			organizationId,
@@ -75,7 +66,6 @@ export const create = mutation({
 			joinedAt: now,
 		});
 
-		// Create audit log
 		await ctx.db.insert("auditLogs", {
 			organizationId,
 			userId,
@@ -89,10 +79,7 @@ export const create = mutation({
 	},
 });
 
-// ============================================================================
 // UPDATE ORGANIZATION
-// ============================================================================
-
 export const update = mutation({
 	args: {
 		organizationId: v.id("organizations"),
@@ -109,14 +96,13 @@ export const update = mutation({
 		),
 	},
 	handler: async (ctx, args) => {
-		const { userId, organizationId, role } = await getCurrentUserContext(ctx);
+		const { userId, organizationId: currentOrgId, role } = await getCurrentUserContext(ctx);
 
-		// Only admin can update org settings
 		if (role !== "admin") {
 			throw new ConvexError("Only admins can update organization settings");
 		}
 
-		if (organizationId !== args.organizationId) {
+		if (currentOrgId !== args.organizationId) {
 			throw new ConvexError("Cannot update organization from different org");
 		}
 
@@ -125,7 +111,6 @@ export const update = mutation({
 			throw new ConvexError("Organization not found");
 		}
 
-		// Validate accent color if provided
 		if (args.accentColor && !isValidHexColor(args.accentColor)) {
 			throw new ConvexError("Invalid hex color format");
 		}
@@ -136,8 +121,6 @@ export const update = mutation({
 
 		if (args.name !== undefined) {
 			updates.name = args.name;
-
-			// Regenerate slug if name changed
 			const existingOrgs = await ctx.db.query("organizations").collect();
 			const existingSlugs = existingOrgs
 				.filter((o) => o._id !== args.organizationId)
@@ -152,7 +135,6 @@ export const update = mutation({
 
 		await ctx.db.patch(args.organizationId, updates);
 
-		// Create audit log
 		await ctx.db.insert("auditLogs", {
 			organizationId: args.organizationId,
 			userId,
@@ -167,10 +149,7 @@ export const update = mutation({
 	},
 });
 
-// ============================================================================
 // UPDATE SETTINGS
-// ============================================================================
-
 export const updateSettings = mutation({
 	args: {
 		allowWorkerAdminChat: v.optional(v.boolean()),
@@ -183,7 +162,7 @@ export const updateSettings = mutation({
 			throw new ConvexError("Only admins can update settings");
 		}
 
-		const org = await ctx.db.get(organizationId);
+		const org = await ctx.db.get(organizationId!);
 		if (!org) {
 			throw new ConvexError("Organization not found");
 		}
@@ -197,30 +176,26 @@ export const updateSettings = mutation({
 			settings.publicShowcase = args.publicShowcase;
 		}
 
-		await ctx.db.patch(organizationId, {
+		await ctx.db.patch(organizationId!, {
 			settings,
 			updatedAt: Date.now(),
 		});
 
-		// Create audit log
 		await ctx.db.insert("auditLogs", {
-			organizationId,
+			organizationId: organizationId!,
 			userId,
 			action: "update",
 			resource: "organization_settings",
-			resourceId: organizationId,
+			resourceId: organizationId!,
 			metadata: { settings: args },
 			createdAt: Date.now(),
 		});
 
-		return organizationId;
+		return organizationId!;
 	},
 });
 
-// ============================================================================
 // SUBMIT VERIFICATION DOCUMENTS
-// ============================================================================
-
 export const submitVerification = mutation({
 	args: {
 		cacDocument: v.string(),
@@ -236,15 +211,14 @@ export const submitVerification = mutation({
 			throw new ConvexError("Only admins can submit verification");
 		}
 
-		const org = await ctx.db.get(organizationId);
+		const org = await ctx.db.get(organizationId!);
 		if (!org) {
 			throw new ConvexError("Organization not found");
 		}
 
-		// Check if subscription tier allows verification
 		requireFeatureAccess(org.subscription.tier, "verification");
 
-		await ctx.db.patch(organizationId, {
+		await ctx.db.patch(organizationId!, {
 			verificationDocuments: {
 				cacDocument: args.cacDocument,
 				bvnVerified: args.bvnVerified,
@@ -255,24 +229,20 @@ export const submitVerification = mutation({
 			updatedAt: Date.now(),
 		});
 
-		// Create audit log
 		await ctx.db.insert("auditLogs", {
-			organizationId,
+			organizationId: organizationId!,
 			userId,
 			action: "create",
 			resource: "verification_documents",
-			resourceId: organizationId,
+			resourceId: organizationId!,
 			createdAt: Date.now(),
 		});
 
-		return organizationId;
+		return organizationId!;
 	},
 });
 
-// ============================================================================
 // UPDATE SUBSCRIPTION
-// ============================================================================
-
 export const updateSubscription = mutation({
 	args: {
 		tier: v.union(v.literal("free"), v.literal("pro"), v.literal("enterprise")),
@@ -286,12 +256,12 @@ export const updateSubscription = mutation({
 			throw new ConvexError("Only admins can update subscription");
 		}
 
-		const org = await ctx.db.get(organizationId);
+		const org = await ctx.db.get(organizationId!);
 		if (!org) {
 			throw new ConvexError("Organization not found");
 		}
 
-		await ctx.db.patch(organizationId, {
+		await ctx.db.patch(organizationId!, {
 			subscription: {
 				tier: args.tier,
 				status: args.status,
@@ -300,17 +270,16 @@ export const updateSubscription = mutation({
 			updatedAt: Date.now(),
 		});
 
-		// Create audit log
 		await ctx.db.insert("auditLogs", {
-			organizationId,
+			organizationId: organizationId!,
 			userId,
 			action: "update",
 			resource: "subscription",
-			resourceId: organizationId,
+			resourceId: organizationId!,
 			metadata: { subscription: args },
 			createdAt: Date.now(),
 		});
 
-		return organizationId;
+		return organizationId!;
 	},
 });

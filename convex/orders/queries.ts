@@ -31,14 +31,14 @@ export const list = query({
 
     let ordersQuery = ctx.db
       .query("orders")
-      .withIndex("by_org", (q) => q.eq("organizationId", organizationId));
+      .withIndex("by_org", (q) => q.eq("organizationId", organizationId!));
 
     // Filter by stage if provided
     if (args.stage) {
       ordersQuery = ctx.db
         .query("orders")
         .withIndex("by_org_stage", (q) =>
-          q.eq("organizationId", organizationId).eq("currentStage", args.stage!)
+          q.eq("organizationId", organizationId!).eq("currentStage", args.stage!)
         );
     }
 
@@ -54,7 +54,7 @@ export const list = query({
       const customer = await ctx.db
         .query("customers")
         .withIndex("by_user", (q) => q.eq("userId", userId))
-        .filter((q) => q.eq(q.field("organizationId"), organizationId))
+        .filter((q) => q.eq(q.field("organizationId"), organizationId!))
         .first();
 
       if (customer) {
@@ -150,7 +150,7 @@ export const get = query({
       const customer = await ctx.db
         .query("customers")
         .withIndex("by_user", (q) => q.eq("userId", userId))
-        .filter((q) => q.eq(q.field("organizationId"), organizationId))
+        .filter((q) => q.eq(q.field("organizationId"), organizationId!))
         .first();
 
       if (!customer || customer._id !== order.customerId) {
@@ -239,7 +239,7 @@ export const listMine = query({
     const customer = await ctx.db
       .query("customers")
       .withIndex("by_user", (q) => q.eq("userId", userId))
-      .filter((q) => q.eq(q.field("organizationId"), organizationId))
+      .filter((q) => q.eq(q.field("organizationId"), organizationId!))
       .first();
 
     if (!customer) {
@@ -298,7 +298,7 @@ export const getSummary = query({
 
     const allOrders = await ctx.db
       .query("orders")
-      .withIndex("by_org", (q) => q.eq("organizationId", organizationId))
+      .withIndex("by_org", (q) => q.eq("organizationId", organizationId!))
       .collect();
 
     const active = allOrders.filter((o) => o.currentStage !== "delivery");

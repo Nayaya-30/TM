@@ -8,12 +8,13 @@ export type UserRole = "admin" | "manager" | "worker" | "customer";
 
 export interface AuthContext {
 	userId: Id<"users">;
-	organizationId: Id<"organizations">;
-	role: UserRole;
+	organizationId?: Id<"organizations">;
+	role?: UserRole;
 }
 
 export async function getCurrentUserContext(
-	ctx: QueryCtx | MutationCtx
+	ctx: QueryCtx | MutationCtx,
+	options: { requireOrg?: boolean } = { requireOrg: true }
 ): Promise<AuthContext> {
 	const userId = await getAuthUserId(ctx);
 
@@ -29,14 +30,17 @@ export async function getCurrentUserContext(
 		.filter((q) => q.eq(q.field("inviteAccepted"), true))
 		.first();
 
-	if (!membership) {
+	const organizationId = membership?.organizationId;
+	const role = membership?.role as UserRole | undefined;
+
+	if (options.requireOrg && !organizationId) {
 		throw new ConvexError("No organization membership found");
 	}
 
 	return {
-		userId: userId as Id<"users">,
-		organizationId: membership.organizationId,
-		role: membership.role as UserRole,
+		userId,
+		organizationId,
+		role,
 	};
 }
 

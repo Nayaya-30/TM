@@ -22,7 +22,14 @@ export const create = mutation({
     costPerUnit: v.optional(v.float64()),
   },
   handler: async (ctx, args) => {
-    const { userId, organizationId, role } = await getCurrentUserContext(ctx);
+    const context = await getCurrentUserContext(ctx);
+    const organizationId = context.organizationId;
+    const role = context.role;
+    const userId = context.userId;
+
+    if (!organizationId || !role) {
+      throw new ConvexError("Organization and role required for this action");
+    }
 
     requirePermission(role, "materials", "create");
 
@@ -93,7 +100,14 @@ export const update = mutation({
     costPerUnit: v.optional(v.float64()),
   },
   handler: async (ctx, args) => {
-    const { userId, organizationId, role } = await getCurrentUserContext(ctx);
+    const context = await getCurrentUserContext(ctx);
+    const organizationId = context.organizationId;
+    const role = context.role;
+    const userId = context.userId;
+
+    if (!organizationId || !role) {
+      throw new ConvexError("Organization and role required for this action");
+    }
 
     requirePermission(role, "materials", "update");
 
@@ -152,7 +166,14 @@ export const purchase = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { userId, organizationId, role } = await getCurrentUserContext(ctx);
+    const context = await getCurrentUserContext(ctx);
+    const organizationId = context.organizationId;
+    const role = context.role;
+    const userId = context.userId;
+
+    if (!organizationId || !role) {
+      throw new ConvexError("Organization and role required for this action");
+    }
 
     requirePermission(role, "materials", "update");
 
@@ -215,7 +236,14 @@ export const adjust = mutation({
     notes: v.string(),
   },
   handler: async (ctx, args) => {
-    const { userId, organizationId, role } = await getCurrentUserContext(ctx);
+    const context = await getCurrentUserContext(ctx);
+    const organizationId = context.organizationId;
+    const role = context.role;
+    const userId = context.userId;
+
+    if (!organizationId || !role) {
+      throw new ConvexError("Organization and role required for this action");
+    }
 
     requirePermission(role, "materials", "update");
 
@@ -278,7 +306,14 @@ export const remove = mutation({
     materialId: v.id("materials"),
   },
   handler: async (ctx, args) => {
-    const { userId, organizationId, role } = await getCurrentUserContext(ctx);
+    const context = await getCurrentUserContext(ctx);
+    const organizationId = context.organizationId;
+    const role = context.role;
+    const userId = context.userId;
+
+    if (!organizationId || !role) {
+      throw new ConvexError("Organization and role required for this action");
+    }
 
     requirePermission(role, "materials", "delete");
 

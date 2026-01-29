@@ -8,62 +8,62 @@ import { getCurrentUserContext } from "../helpers/auth";
 // ============================================================================
 
 export const listByCustomer = query({
-  args: {
-    customerId: v.id("customers"),
-  },
-  handler: async (ctx, args) => {
-    const { userId, organizationId, role } = await getCurrentUserContext(ctx);
+	args: {
+		customerId: v.id("customers"),
+	},
+	handler: async (ctx, args) => {
+		const { userId, organizationId, role } = await getCurrentUserContext(ctx);
 
-    const customer = await ctx.db.get(args.customerId);
+		const customer = await ctx.db.get(args.customerId);
 
-    if (!customer) {
-      throw new ConvexError("Customer not found");
-    }
+		if (!customer) {
+			throw new ConvexError("Customer not found");
+		}
 
-    if (customer.organizationId !== organizationId) {
-      throw new ConvexError("Customer belongs to different organization");
-    }
+		if (customer.organizationId !== organizationId) {
+			throw new ConvexError("Customer belongs to different organization");
+		}
 
-    // Customer can only view their own dependants
-    if (role === "customer" && customer.userId !== userId) {
-      throw new ConvexError("Cannot view other customers' dependants");
-    }
+		// Customer can only view their own dependants
+		if (role === "customer" && customer.userId !== userId) {
+			throw new ConvexError("Cannot view other customers' dependants");
+		}
 
-    // Workers cannot view dependants
-    if (role === "worker") {
-      throw new ConvexError("Workers cannot view dependants");
-    }
+		// Workers cannot view dependants
+		if (role === "worker") {
+			throw new ConvexError("Workers cannot view dependants");
+		}
 
-    const dependants = await ctx.db
-      .query("dependants")
-      .withIndex("by_customer", (q) => q.eq("customerId", args.customerId))
-      .collect();
+		const dependants = await ctx.db
+			.query("dependants")
+			.withIndex("by_customer", (q) => q.eq("customerId", args.customerId))
+			.collect();
 
-    // Get measurement count for each dependant
-    const dependantsWithCounts = await Promise.all(
-      dependants.map(async (dependant) => {
-        const measurementCount = await ctx.db
-          .query("measurements")
-          .withIndex("by_dependant", (q) => q.eq("dependantId", dependant._id))
-          .collect()
-          .then((measurements) => measurements.length);
+		// Get measurement count for each dependant
+		const dependantsWithCounts = await Promise.all(
+			dependants.map(async (dependant) => {
+				const measurementCount = await ctx.db
+					.query("measurements")
+					.withIndex("by_dependant", (q) => q.eq("dependantId", dependant._id))
+					.collect()
+					.then((measurements) => measurements.length);
 
-        const orderCount = await ctx.db
-          .query("orders")
-          .filter((q) => q.eq(q.field("dependantId"), dependant._id))
-          .collect()
-          .then((orders) => orders.length);
+				const orderCount = await ctx.db
+					.query("orders")
+					.filter((q) => q.eq(q.field("dependantId"), dependant._id))
+					.collect()
+					.then((orders) => orders.length);
 
-        return {
-          ...dependant,
-          measurementCount,
-          orderCount,
-        };
-      })
-    );
+				return {
+					...dependant,
+					measurementCount,
+					orderCount,
+				};
+			})
+		);
 
-    return dependantsWithCounts;
-  },
+		return dependantsWithCounts;
+	},
 });
 
 // ============================================================================
@@ -71,41 +71,41 @@ export const listByCustomer = query({
 // ============================================================================
 
 export const get = query({
-  args: {
-    dependantId: v.id("dependants"),
-  },
-  handler: async (ctx, args) => {
-    const { userId, organizationId, role } = await getCurrentUserContext(ctx);
+	args: {
+		dependantId: v.id("dependants"),
+	},
+	handler: async (ctx, args) => {
+		const { userId, organizationId, role } = await getCurrentUserContext(ctx);
 
-    const dependant = await ctx.db.get(args.dependantId);
+		const dependant = await ctx.db.get(args.dependantId);
 
-    if (!dependant) {
-      throw new ConvexError("Dependant not found");
-    }
+		if (!dependant) {
+			throw new ConvexError("Dependant not found");
+		}
 
-    if (dependant.organizationId !== organizationId) {
-      throw new ConvexError("Dependant belongs to different organization");
-    }
+		if (dependant.organizationId !== organizationId) {
+			throw new ConvexError("Dependant belongs to different organization");
+		}
 
-    // Get customer to check ownership
-    const customer = await ctx.db.get(dependant.customerId);
+		// Get customer to check ownership
+		const customer = await ctx.db.get(dependant.customerId);
 
-    if (!customer) {
-      throw new ConvexError("Customer not found");
-    }
+		if (!customer) {
+			throw new ConvexError("Customer not found");
+		}
 
-    // Customer can only view their own dependants
-    if (role === "customer" && customer.userId !== userId) {
-      throw new ConvexError("Cannot view other customers' dependants");
-    }
+		// Customer can only view their own dependants
+		if (role === "customer" && customer.userId !== userId) {
+			throw new ConvexError("Cannot view other customers' dependants");
+		}
 
-    // Workers cannot view dependants
-    if (role === "worker") {
-      throw new ConvexError("Workers cannot view dependants");
-    }
+		// Workers cannot view dependants
+		if (role === "worker") {
+			throw new ConvexError("Workers cannot view dependants");
+		}
 
-    return dependant;
-  },
+		return dependant;
+	},
 });
 
 // ============================================================================
@@ -114,28 +114,25 @@ export const get = query({
 
 export const listMine = query({
   handler: async (ctx) => {
-    const { userId, organizationId, role } = await getCurrentUserContext(ctx);
+    const { userId } = await getCurrentUserContext(ctx, { requireOrg: false });
 
-    if (role !== "customer") {
-      throw new ConvexError("Only customers can access this endpoint");
-    }
-
+    // Find the customer's record via userId (org not required)
     const customer = await ctx.db
       .query("customers")
       .withIndex("by_user", (q) => q.eq("userId", userId))
-      .filter((q) => q.eq(q.field("organizationId"), organizationId))
       .first();
 
     if (!customer) {
-      throw new ConvexError("Customer profile not found");
+      return []; // No customer profile yet → no dependants
     }
 
+    // Fetch dependants by customerId (org optional)
     const dependants = await ctx.db
       .query("dependants")
       .withIndex("by_customer", (q) => q.eq("customerId", customer._id))
       .collect();
 
-    // Get counts for each dependant
+    // Enrich with counts
     const dependantsWithCounts = await Promise.all(
       dependants.map(async (dependant) => {
         const measurementCount = await ctx.db

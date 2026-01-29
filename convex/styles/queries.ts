@@ -106,7 +106,7 @@ export const listInternal = query({
 
     let styles = await ctx.db
       .query("styles")
-      .withIndex("by_org", (q) => q.eq("organizationId", membership.organizationId))
+      .withIndex("by_org", (q) => q.eq("organizationId", membership.organizationId!))
       .order("desc")
       .take(limit);
 
@@ -122,7 +122,7 @@ export const listInternal = query({
       styles.map(async (style) => {
         const orderCount = await ctx.db
           .query("orders")
-          .withIndex("by_org", (q) => q.eq("organizationId", membership.organizationId))
+          .withIndex("by_org", (q) => q.eq("organizationId", membership.organizationId!))
           .filter((q) => q.eq(q.field("styleId"), style._id))
           .collect()
           .then((orders) => orders.length);

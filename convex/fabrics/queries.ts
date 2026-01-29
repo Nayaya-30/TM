@@ -15,7 +15,13 @@ export const list = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const { organizationId, role } = await getCurrentUserContext(ctx);
+    const context = await getCurrentUserContext(ctx);
+    const organizationId = context.organizationId;
+    const role = context.role;
+
+    if (!organizationId || !role) {
+      throw new ConvexError("Organization and role required for this action");
+    }
 
     requirePermission(role, "fabrics", "read");
 
@@ -56,7 +62,13 @@ export const get = query({
     fabricId: v.id("fabrics"),
   },
   handler: async (ctx, args) => {
-    const { organizationId, role } = await getCurrentUserContext(ctx);
+    const context = await getCurrentUserContext(ctx);
+    const organizationId = context.organizationId;
+    const role = context.role;
+
+    if (!organizationId || !role) {
+      throw new ConvexError("Organization and role required for this action");
+    }
 
     requirePermission(role, "fabrics", "read");
 
@@ -80,7 +92,13 @@ export const get = query({
 
 export const getSummary = query({
   handler: async (ctx) => {
-    const { organizationId, role } = await getCurrentUserContext(ctx);
+    const context = await getCurrentUserContext(ctx);
+    const organizationId = context.organizationId;
+    const role = context.role;
+
+    if (!organizationId || !role) {
+      throw new ConvexError("Organization and role required for this action");
+    }
 
     requirePermission(role, "fabrics", "read");
 
@@ -111,7 +129,13 @@ export const getSummary = query({
 
 export const getTags = query({
   handler: async (ctx) => {
-    const { organizationId, role } = await getCurrentUserContext(ctx);
+    const context = await getCurrentUserContext(ctx);
+    const organizationId = context.organizationId;
+    const role = context.role;
+
+    if (!organizationId || !role) {
+      throw new ConvexError("Organization and role required for this action");
+    }
 
     requirePermission(role, "fabrics", "read");
 

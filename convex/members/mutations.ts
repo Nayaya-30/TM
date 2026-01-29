@@ -9,7 +9,6 @@ import { requireUser } from "../users/helpers";
 // ============================================================================
 // INVITE USER TO ORGANIZATION
 // ============================================================================
-
 export const invite = mutation({
 	args: {
 		email: v.string(),
@@ -22,14 +21,13 @@ export const invite = mutation({
 	},
 	handler: async (ctx, args) => {
 		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) throw new ConvexError("Unauthenticated");
 
-		if (!identity) {
-			throw new ConvexError("Unauthenticated");
-		}
-		
-		const { userId, organizationId, role: currentUserRole } = await getCurrentUserContext(ctx);
+		const context = await getCurrentUserContext(ctx);
+		assertOrgContext(context); // now TS knows organizationId and role exist
 
-		// Check permissions
+		const { userId, organizationId, role: currentUserRole } = context;
+
 		if (!hasPermission(currentUserRole, "workers", "create")) {
 			throw new ConvexError("Insufficient permissions to invite users");
 		}
@@ -90,14 +88,14 @@ export const invite = mutation({
 
 		// Create audit log
 		await ctx.db.insert("auditLogs", {
-			organizationId,
-			userId,
-			action: "create",
-			resource: "invitation",
-			resourceId: membershipId,
-			metadata: { email: args.email, role: args.role },
-			createdAt: now,
-		});
+      organizationId, // safe
+      userId,
+      action: "create",
+      resource: "invitation",
+      resourceId: membershipId,
+      metadata: { email: args.email, role: args.role },
+      createdAt: now,
+    });
 
 		// TODO: Send email with invite token
 		// await sendInviteEmail(args.email, inviteToken, organizationId);

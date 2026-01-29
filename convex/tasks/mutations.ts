@@ -2,7 +2,6 @@ import { v } from "convex/values";
 import { mutation } from "../_generated/server";
 import { ConvexError } from "convex/values";
 import { getCurrentUserContext, requirePermission } from "../helpers/auth";
-import { calculateTaskStatus } from "../helpers/utils";
 
 // ============================================================================
 // CREATE TASK
@@ -31,7 +30,14 @@ export const create = mutation({
     ),
   },
   handler: async (ctx, args) => {
-    const { userId, organizationId, role } = await getCurrentUserContext(ctx);
+    const context = await getCurrentUserContext(ctx);
+    const organizationId = context.organizationId;
+    const role = context.role;
+    const userId = context.userId;
+
+    if (!organizationId || !role) {
+      throw new ConvexError("Organization and role required for this action");
+    }
 
     requirePermission(role, "tasks", "create");
 
@@ -116,7 +122,14 @@ export const update = mutation({
     assignedTo: v.optional(v.id("users")),
   },
   handler: async (ctx, args) => {
-    const { userId, organizationId, role } = await getCurrentUserContext(ctx);
+    const context = await getCurrentUserContext(ctx);
+    const organizationId = context.organizationId;
+    const role = context.role;
+    const userId = context.userId;
+
+    if (!organizationId || !role) {
+      throw new ConvexError("Organization and role required for this action");
+    }
 
     requirePermission(role, "tasks", "update");
 
@@ -194,7 +207,14 @@ export const updateStatus = mutation({
     ),
   },
   handler: async (ctx, args) => {
-    const { userId, organizationId, role } = await getCurrentUserContext(ctx);
+    const context = await getCurrentUserContext(ctx);
+    const organizationId = context.organizationId;
+    const role = context.role;
+    const userId = context.userId;
+
+    if (!organizationId || !role) {
+      throw new ConvexError("Organization and role required for this action");
+    }
 
     const task = await ctx.db.get(args.taskId);
 
@@ -250,7 +270,14 @@ export const recordMaterialConsumption = mutation({
     actualQuantity: v.float64(),
   },
   handler: async (ctx, args) => {
-    const { userId, organizationId, role } = await getCurrentUserContext(ctx);
+    const context = await getCurrentUserContext(ctx);
+    const organizationId = context.organizationId;
+    const role = context.role;
+    const userId = context.userId;
+
+    if (!organizationId || !role) {
+      throw new ConvexError("Organization and role required for this action");
+    }
 
     const task = await ctx.db.get(args.taskId);
 
@@ -327,7 +354,14 @@ export const rateTask = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { userId, organizationId, role } = await getCurrentUserContext(ctx);
+    const context = await getCurrentUserContext(ctx);
+    const organizationId = context.organizationId;
+    const role = context.role;
+    const userId = context.userId;
+
+    if (!organizationId || !role) {
+      throw new ConvexError("Organization and role required for this action");
+    }
 
     if (role !== "admin" && role !== "manager") {
       throw new ConvexError("Only admin and manager can rate tasks");
@@ -381,7 +415,14 @@ export const remove = mutation({
     taskId: v.id("tasks"),
   },
   handler: async (ctx, args) => {
-    const { userId, organizationId, role } = await getCurrentUserContext(ctx);
+    const context = await getCurrentUserContext(ctx);
+    const organizationId = context.organizationId;
+    const role = context.role;
+    const userId = context.userId;
+
+    if (!organizationId || !role) {
+      throw new ConvexError("Organization and role required for this action");
+    }
 
     requirePermission(role, "tasks", "delete");
 

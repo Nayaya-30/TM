@@ -15,7 +15,13 @@ export const list = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const { organizationId, role } = await getCurrentUserContext(ctx);
+    const context = await getCurrentUserContext(ctx);
+    const organizationId = context.organizationId;
+    const role = context.role;
+
+    if (!organizationId || !role) {
+      throw new ConvexError("Organization and role required for this action");
+    }
 
     requirePermission(role, "materials", "read");
 
@@ -54,7 +60,13 @@ export const get = query({
     materialId: v.id("materials"),
   },
   handler: async (ctx, args) => {
-    const { organizationId, role } = await getCurrentUserContext(ctx);
+    const context = await getCurrentUserContext(ctx);
+    const organizationId = context.organizationId;
+    const role = context.role;
+
+    if (!organizationId || !role) {
+      throw new ConvexError("Organization and role required for this action");
+    }
 
     requirePermission(role, "materials", "read");
 
@@ -91,7 +103,13 @@ export const getLedger = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const { organizationId, role } = await getCurrentUserContext(ctx);
+    const context = await getCurrentUserContext(ctx);
+    const organizationId = context.organizationId;
+    const role = context.role;
+
+    if (!organizationId || !role) {
+      throw new ConvexError("Organization and role required for this action");
+    }
 
     requirePermission(role, "materials", "read");
 
@@ -147,7 +165,13 @@ export const getLedger = query({
 
 export const getSummary = query({
   handler: async (ctx) => {
-    const { organizationId, role } = await getCurrentUserContext(ctx);
+    const context = await getCurrentUserContext(ctx);
+    const organizationId = context.organizationId;
+    const role = context.role;
+
+    if (!organizationId || !role) {
+      throw new ConvexError("Organization and role required for this action");
+    }
 
     requirePermission(role, "materials", "read");
 
@@ -182,7 +206,14 @@ export const getConsumptionByTask = query({
     taskId: v.id("tasks"),
   },
   handler: async (ctx, args) => {
-    const { organizationId, role } = await getCurrentUserContext(ctx);
+    const context = await getCurrentUserContext(ctx);
+    const organizationId = context.organizationId;
+    const role = context.role;
+    const userId = context.userId;
+
+    if (!organizationId || !role) {
+      throw new ConvexError("Organization and role required for this action");
+    }
 
     const task = await ctx.db.get(args.taskId);
 
@@ -195,9 +226,7 @@ export const getConsumptionByTask = query({
     }
 
     // Workers can only view their own tasks' material consumption
-    const identity = await ctx.auth.getUserIdentity();
-    const currentUserId = identity?.subject as Id<"users"> | undefined;
-    if (role === "worker" && (!currentUserId || task.assignedTo !== currentUserId)) {
+    if (role === "worker" && task.assignedTo !== userId) {
       throw new ConvexError("Cannot view other workers' material consumption");
     }
 
